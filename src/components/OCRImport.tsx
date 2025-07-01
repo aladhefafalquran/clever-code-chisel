@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -161,7 +162,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const handleApplyChanges = () => {
-    const roomsToUpdate = detectedRooms.filter(room => room.status !== '' && room.status);
+    const roomsToUpdate = detectedRooms.filter(room => room.status !== '');
     
     if (roomsToUpdate.length === 0) {
       alert('Please assign statuses to at least one room before applying changes.');
@@ -170,7 +171,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
 
     // Apply all changes
     roomsToUpdate.forEach(room => {
-      if (room.status && room.status !== '') {
+      if (room.status !== '') {
         onRoomStatusUpdate(room.number, room.status as RoomStatus);
       }
     });
@@ -360,7 +361,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {room.status && room.status !== '' && (
+                  {room.status !== '' && (
                     <div className={`text-xs px-2 py-1 rounded ${
                       room.status === 'checkout' ? 'bg-red-100 text-red-800' :
                       room.status === 'dirty' ? 'bg-orange-100 text-orange-800' :
