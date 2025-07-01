@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ interface OCRImportProps {
 
 interface DetectedRoom {
   number: string;
-  status: RoomStatus | null;
+  status: RoomStatus | '';
 }
 
 export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProps) => {
@@ -86,7 +87,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       // Create room mapping structure
       const rooms: DetectedRoom[] = roomNumbers.map(number => ({
         number,
-        status: null
+        status: ''
       }));
       
       setDetectedRooms(rooms);
@@ -101,10 +102,10 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     }
   };
 
-  const handleStatusChange = (roomNumber: string, status: RoomStatus) => {
+  const handleStatusChange = (roomNumber: string, status: string) => {
     setDetectedRooms(prev =>
       prev.map(room =>
-        room.number === roomNumber ? { ...room, status } : room
+        room.number === roomNumber ? { ...room, status: status as RoomStatus } : room
       )
     );
   };
@@ -132,7 +133,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     // Add the new room to the list
     const newRoom: DetectedRoom = {
       number: roomNumber,
-      status: null
+      status: ''
     };
 
     setDetectedRooms(prev => [...prev, newRoom].sort((a, b) => parseInt(a.number) - parseInt(b.number)));
@@ -140,7 +141,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const handleApplyChanges = () => {
-    const roomsToUpdate = detectedRooms.filter(room => room.status !== null);
+    const roomsToUpdate = detectedRooms.filter(room => room.status !== '');
     
     if (roomsToUpdate.length === 0) {
       alert('Please assign statuses to at least one room before applying changes.');
@@ -150,7 +151,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     // Apply all changes
     roomsToUpdate.forEach(room => {
       if (room.status) {
-        onRoomStatusUpdate(room.number, room.status);
+        onRoomStatusUpdate(room.number, room.status as RoomStatus);
       }
     });
 
@@ -298,8 +299,8 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                     Room {room.number}
                   </div>
                   <Select 
-                    value={room.status || ""} 
-                    onValueChange={(value) => handleStatusChange(room.number, value as RoomStatus)}
+                    value={room.status} 
+                    onValueChange={(value) => handleStatusChange(room.number, value)}
                   >
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Select status" />
@@ -310,7 +311,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                       <SelectItem value="default">Default</SelectItem>
                     </SelectContent>
                   </Select>
-                  {room.status && (
+                  {room.status && room.status !== '' && (
                     <div className={`text-xs px-2 py-1 rounded ${
                       room.status === 'clean' ? 'bg-green-100 text-green-800' :
                       room.status === 'dirty' ? 'bg-red-100 text-red-800' :
@@ -328,9 +329,9 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               <Button 
                 onClick={handleApplyChanges}
                 className="flex-1"
-                disabled={detectedRooms.filter(r => r.status !== null).length === 0}
+                disabled={detectedRooms.filter(r => r.status !== '').length === 0}
               >
-                Apply All Changes ({detectedRooms.filter(r => r.status !== null).length} rooms)
+                Apply All Changes ({detectedRooms.filter(r => r.status !== '').length} rooms)
               </Button>
               <Button 
                 variant="outline" 
