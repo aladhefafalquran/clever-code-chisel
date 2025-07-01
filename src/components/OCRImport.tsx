@@ -96,28 +96,50 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const parseRoomStatusFromText = (text: string, roomNumber: string): RoomStatus => {
-    console.log('Processing room:', roomNumber);
+    console.log('🔍 Processing room:', roomNumber);
     
-    // Create a precise regex to find the room number and capture what comes immediately after it
-    // Pattern: room number + optional spaces + room type words + status combination
-    const roomPattern = new RegExp(
-      `${roomNumber}\\s+[\\w\\s]*?\\s+(temizdolu|temizboş|temizbo[sş]|kirlidolu|kirliboş|kirliboş|kapalıdolu|kapalıboş|kapalibo[sş]|cleanovailable|cleanoccupied|cleanvacant|dirtyavailable|dirtyoccupied|dirtyvacant|closedavailable|closedoccupied|closedvacant|cleanavailable|dirtyoccupied)`,
-      'i'
-    );
+    // Create more precise regex patterns for better matching
+    const patterns = [
+      // Primary pattern: room number + room type + status combination
+      new RegExp(`${roomNumber}\\s+[\\w\\s]*?\\s+(temizdolu|temizboş|temizbo[sš]|kirlidolu|kirliboş|kirliboš|kapalıdolu|kapalıboş|kapalibo[sš])(?=\\s|$)`, 'i'),
+      // Secondary pattern: more flexible matching
+      new RegExp(`${roomNumber}[\\s\\S]{0,100}?(temizdolu|temizboş|temizbo[sš]|kirlidolu|kirliboş|kirliboš|kapalıdolu|kapalıboş|kapalibo[sš])(?=\\s|$)`, 'i'),
+      // Enhanced fallback pattern for individual words
+      new RegExp(`${roomNumber}[\\s\\S]{0,50}?(temiz|kirli|kapalı|kapali)[\\s\\S]{0,20}?(dolu|boş|boš|bo[sš])`, 'i')
+    ];
     
-    const match = text.match(roomPattern);
+    let match = null;
+    let patternUsed = 'none';
+    
+    // Try patterns in order of precision
+    for (let i = 0; i < patterns.length; i++) {
+      match = text.match(patterns[i]);
+      if (match) {
+        patternUsed = `pattern_${i + 1}`;
+        break;
+      }
+    }
     
     if (match) {
-      const detectedCombination = match[1].toLowerCase();
-      console.log('Found text segment:', match[0]);
-      console.log('Detected status combination:', detectedCombination);
-      
-      // Map the detected combination to room status
+      let detectedCombination = '';
       let detectedStatus: RoomStatus = 'default';
-      let statusColor = 'BLUE';
-      let isOccupied = 'Unknown';
+      let occupancyStatus = 'Unknown';
+      let personIcon = '';
       
-      // Check concatenated combinations first
+      if (patternUsed === 'pattern_3') {
+        // Enhanced fallback - reconstruct combination
+        const status1 = match[1]?.toLowerCase() || '';
+        const status2 = match[2]?.toLowerCase() || '';
+        detectedCombination = status1 + status2;
+      } else {
+        detectedCombination = match[1]?.toLowerCase() || '';
+      }
+      
+      console.log('📄 Found text segment:', match[0]);
+      console.log('🎯 Detected status combination:', detectedCombination);
+      console.log('🔧 Pattern used:', patternUsed);
+      
+      // Map the detected combination to room status and occupancy
       for (const [combination, status] of Object.entries(CONCATENATED_STATUS_MAPPINGS)) {
         if (detectedCombination === combination.toLowerCase()) {
           detectedStatus = status;
@@ -125,9 +147,11 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
           // Determine occupancy from the combination
           if (combination.toLowerCase().includes('boş') || combination.toLowerCase().includes('bos') || 
               combination.toLowerCase().includes('available') || combination.toLowerCase().includes('vacant')) {
-            isOccupied = 'Vacant';
+            occupancyStatus = 'Vacant';
+            personIcon = '👤';
           } else if (combination.toLowerCase().includes('dolu') || combination.toLowerCase().includes('occupied')) {
-            isOccupied = 'Occupied';
+            occupancyStatus = 'Occupied';
+            personIcon = '👥';
           }
           
           break;
@@ -136,48 +160,48 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       
       // Map status to color for logging
       const statusToColor = {
-        'clean': 'GREEN',
-        'dirty': 'ORANGE', 
-        'closed': 'GRAY',
-        'checkout': 'RED',
-        'default': 'BLUE'
+        'clean': '🟢 GREEN',
+        'dirty': '🟠 ORANGE', 
+        'closed': '⚫ GRAY',
+        'checkout': '🔴 RED',
+        'default': '🔵 BLUE'
       };
       
-      statusColor = statusToColor[detectedStatus] || 'BLUE';
-      console.log('Mapped to color:', statusColor, 'Occupied:', isOccupied);
+      const statusColor = statusToColor[detectedStatus] || '🔵 BLUE';
+      console.log('🎨 Mapped to color:', statusColor, `+ ${personIcon} ${occupancyStatus}`);
       console.log('---');
       
       return detectedStatus;
     }
     
-    // Fallback: If no precise match found, try the old method but with better logging
-    console.log(`❌ Room ${roomNumber}: No precise pattern match found`);
+    // Enhanced fallback with better logging
+    console.log(`❌ Room ${roomNumber}: No pattern match found`);
     
-    // Try to find the room in the text and get some context around it
+    // Try to find the room in the text and get context
     const roomIndex = text.toLowerCase().indexOf(roomNumber);
     if (roomIndex !== -1) {
-      const contextStart = Math.max(0, roomIndex - 20);
+      const contextStart = Math.max(0, roomIndex - 30);
       const contextEnd = Math.min(text.length, roomIndex + 100);
       const roomContext = text.substring(contextStart, contextEnd);
-      console.log('Context around room:', roomContext);
+      console.log('📝 Context around room:', roomContext.trim());
       
-      // Try individual word matching as fallback
+      // Individual word matching as final fallback
       const contextLower = roomContext.toLowerCase();
       
       if (contextLower.includes('temiz')) {
-        console.log('Fallback: Found "temiz" - mapping to GREEN (Clean)');
+        console.log('🔄 Fallback: Found "temiz" - mapping to 🟢 GREEN (Clean)');
         return 'clean';
       } else if (contextLower.includes('kirli')) {
-        console.log('Fallback: Found "kirli" - mapping to ORANGE (Dirty)');
+        console.log('🔄 Fallback: Found "kirli" - mapping to 🟠 ORANGE (Dirty)');
         return 'dirty';
       } else if (contextLower.includes('kapalı') || contextLower.includes('kapali')) {
-        console.log('Fallback: Found "kapalı/kapali" - mapping to GRAY (Closed)');
+        console.log('🔄 Fallback: Found "kapalı/kapali" - mapping to ⚫ GRAY (Closed)');
         return 'closed';
       }
     }
     
-    console.log('⚠️ FALLBACK: No pattern matched for room', roomNumber);
-    console.log('Defaulting to BLUE (Default) status');
+    console.log('⚠️ FINAL FALLBACK: No pattern matched for room', roomNumber);
+    console.log('🔵 Defaulting to BLUE (Default) status');
     console.log('---');
     
     return 'default';
@@ -217,14 +241,14 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     // Simulate processing delay for better UX
     setTimeout(() => {
-      console.log('🚀 Processing text input with ENHANCED DEBUG concatenated combination detection...');
+      console.log('🚀 Processing text input with ENHANCED DEBUG + occupancy status detection...');
       console.log('📄 Input text preview:', textInput.substring(0, 200) + '...');
       
       // Parse room numbers from text
       const roomNumbers = parseRoomNumbers(textInput);
       console.log('🏠 Detected room numbers:', roomNumbers);
       
-      console.log('🔍 Starting ENHANCED DEBUG status detection...');
+      console.log('🔍 Starting ENHANCED DEBUG status detection with occupancy...');
       console.log('===============================================');
       
       // Create room mapping structure with enhanced status detection
@@ -234,7 +258,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       });
       
       console.log('===============================================');
-      console.log('📊 FINAL SUMMARY - All rooms with detected statuses:');
+      console.log('📊 FINAL SUMMARY - All rooms with detected statuses and occupancy:');
       rooms.forEach(room => {
         const statusInfo = {
           'clean': '🟢 GREEN (Clean)',
@@ -243,7 +267,23 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
           'checkout': '🔴 RED (Checkout)',
           'default': '🔵 BLUE (Default)'
         };
-        console.log(`   Room ${room.number}: ${statusInfo[room.status as RoomStatus] || room.status}`);
+        
+        // Determine occupancy for summary
+        const roomContext = textInput.toLowerCase();
+        const roomPattern = new RegExp(`${room.number}[\\s\\S]{0,100}?(dolu|boş|boš|occupied|vacant)`, 'i');
+        const occupancyMatch = roomContext.match(roomPattern);
+        let occupancyIcon = '';
+        
+        if (occupancyMatch) {
+          const occupancyWord = occupancyMatch[1].toLowerCase();
+          if (occupancyWord.includes('dolu') || occupancyWord === 'occupied') {
+            occupancyIcon = ' + 👥 Occupied';
+          } else if (occupancyWord.includes('boş') || occupancyWord.includes('bos') || occupancyWord === 'vacant') {
+            occupancyIcon = ' + 👤 Vacant';
+          }
+        }
+        
+        console.log(`   Room ${room.number}: ${statusInfo[room.status as RoomStatus] || room.status}${occupancyIcon}`);
       });
       
       setDetectedRooms(rooms);
