@@ -1,8 +1,11 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Upload, Loader2, CheckCircle, Plus, FileText, Camera } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { X, Upload, Loader2, CheckCircle, Plus, FileText, Camera, Type } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Tesseract from 'tesseract.js';
 import { RoomStatus } from '@/types/room';
 
@@ -18,7 +21,9 @@ interface DetectedRoom {
 }
 
 export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProps) => {
+  const [inputMode, setInputMode] = useState<'image' | 'text'>('image');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [detectedRooms, setDetectedRooms] = useState<DetectedRoom[]>([]);
@@ -63,6 +68,52 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     return roomNumbers;
   };
 
+  const parseRoomStatusFromText = (text: string, roomNumber: string): RoomStatus => {
+    const lowerText = text.toLowerCase();
+    
+    // Find the context around the room number (within 100 characters)
+    const roomIndex = text.indexOf(roomNumber);
+    if (roomIndex === -1) return 'default';
+    
+    const contextStart = Math.max(0, roomIndex - 50);
+    const contextEnd = Math.min(text.length, roomIndex + roomNumber.length + 50);
+    const roomContext = text.substring(contextStart, contextEnd).toLowerCase();
+    
+    console.log(`Room ${roomNumber} context:`, roomContext);
+    
+    // Turkish status words (more specific patterns)
+    if (roomContext.includes('temiz')) {
+      return 'clean';
+    }
+    if (roomContext.includes('kirli')) {
+      return 'dirty';
+    }
+    if (roomContext.includes('kapalı') || roomContext.includes('kapali')) {
+      return 'closed';
+    }
+    
+    // English status words
+    if (roomContext.includes('clean')) {
+      return 'clean';
+    }
+    if (roomContext.includes('dirty')) {
+      return 'dirty';
+    }
+    if (roomContext.includes('closed')) {
+      return 'closed';
+    }
+    
+    // Special markers
+    if (roomContext.includes(' c ') || roomContext.includes('checkout')) {
+      return 'checkout';
+    }
+    if (roomContext.includes(' b ') || roomContext.includes('daily clean')) {
+      return 'dirty';
+    }
+    
+    return 'default';
+  };
+
   const parseRoomStatus = (text: string, roomNumber: string): RoomStatus => {
     const lowerText = text.toLowerCase();
     const roomContext = text.substring(Math.max(0, text.indexOf(roomNumber) - 50), text.indexOf(roomNumber) + 50).toLowerCase();
@@ -85,6 +136,37 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     }
     
     return 'default';
+  };
+
+  const handleProcessText = () => {
+    if (!textInput.trim()) {
+      alert('Please enter some text to parse.');
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    // Simulate processing delay for better UX
+    setTimeout(() => {
+      console.log('Processing text input...');
+      console.log('Input text:', textInput);
+      
+      // Parse room numbers from text
+      const roomNumbers = parseRoomNumbers(textInput);
+      console.log('Detected room numbers:', roomNumbers);
+      
+      // Create room mapping structure with intelligent status detection
+      const rooms: DetectedRoom[] = roomNumbers.map(number => ({
+        number,
+        status: parseRoomStatusFromText(textInput, number)
+      }));
+      
+      console.log('Parsed rooms with statuses:', rooms);
+      
+      setDetectedRooms(rooms);
+      setShowMapping(true);
+      setIsProcessing(false);
+    }, 1000);
   };
 
   const handleProcessImage = async () => {
@@ -201,7 +283,9 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const handleClose = () => {
+    setInputMode('image');
     setSelectedFile(null);
+    setTextInput('');
     setIsProcessing(false);
     setProgress(0);
     setDetectedRooms([]);
@@ -231,81 +315,154 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
 
         {!showMapping ? (
           <div className="space-y-4">
+            {/* Input Mode Toggle */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Select Image or PDF (JPG/PNG/PDF)
+                Choose Input Method
               </label>
-              <Input
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={handleFileSelect}
-                disabled={isProcessing}
-                className="w-full"
-              />
+              <ToggleGroup 
+                type="single" 
+                value={inputMode} 
+                onValueChange={(value) => value && setInputMode(value as 'image' | 'text')}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="image" className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Upload Image
+                </ToggleGroupItem>
+                <ToggleGroupItem value="text" className="flex items-center gap-2">
+                  <Type className="w-4 h-4" />
+                  Paste Text
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
-            {selectedFile && !showPDFMessage && (
-              <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                Selected: {selectedFile.name} (Image)
-              </div>
-            )}
-
-            {showPDFMessage && selectedFile && (
-              <div className="space-y-3">
-                <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded border border-orange-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4" />
-                    <span className="font-medium">PDF Support Coming Soon</span>
-                  </div>
-                  <p className="text-xs">
-                    Selected: {selectedFile.name} - PDF processing is temporarily unavailable due to technical issues.
-                  </p>
-                </div>
-
-                <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Camera className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">Workaround Options:</span>
-                  </div>
-                  <ul className="text-xs text-blue-700 space-y-1 ml-6">
-                    <li>• Take screenshots of your PDF report pages</li>
-                    <li>• Export/print PDF pages as JPG or PNG images</li>
-                    <li>• Upload the converted images using the image OCR above</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {isProcessing && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing image... {progress}%
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
+            {/* Image Upload Mode */}
+            {inputMode === 'image' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Select Image or PDF (JPG/PNG/PDF)
+                  </label>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,application/pdf"
+                    onChange={handleFileSelect}
+                    disabled={isProcessing}
+                    className="w-full"
                   />
                 </div>
-              </div>
+
+                {selectedFile && !showPDFMessage && (
+                  <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                    Selected: {selectedFile.name} (Image)
+                  </div>
+                )}
+
+                {showPDFMessage && selectedFile && (
+                  <div className="space-y-3">
+                    <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded border border-orange-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">PDF Support Coming Soon</span>
+                      </div>
+                      <p className="text-xs">
+                        Selected: {selectedFile.name} - PDF processing is temporarily unavailable due to technical issues.
+                      </p>
+                    </div>
+
+                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Camera className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">Workaround Options:</span>
+                      </div>
+                      <ul className="text-xs text-blue-700 space-y-1 ml-6">
+                        <li>• Take screenshots of your PDF report pages</li>
+                        <li>• Export/print PDF pages as JPG or PNG images</li>
+                        <li>• Upload the converted images using the image OCR above</li>
+                        <li>• Or use the "Paste Text" option to copy-paste from your PDF</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {isProcessing && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing image... {progress}%
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!showPDFMessage && (
+                  <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                    OCR will detect room numbers from images, then you can manually assign statuses.
+                  </div>
+                )}
+              </>
             )}
 
-            {!showPDFMessage && (
-              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                OCR will detect room numbers from images, then you can manually assign statuses.
-              </div>
+            {/* Text Input Mode */}
+            {inputMode === 'text' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Paste Hotel Report Text
+                  </label>
+                  <Textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Paste your hotel report text here...&#10;&#10;Example:&#10;101 DELUXE ROOM Temiz&#10;102 STANDARD ROOM Kirli&#10;103 SUITE Kapalı&#10;104 DELUXE ROOM C (checkout)&#10;105 STANDARD ROOM B (daily clean)"
+                    className="min-h-[120px] w-full"
+                    disabled={isProcessing}
+                  />
+                </div>
+
+                {isProcessing && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Parsing text...
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                  <div className="font-medium mb-1">Text parsing will detect:</div>
+                  <ul className="space-y-1 ml-4">
+                    <li>• Room numbers: 101, 102, 103, etc.</li>
+                    <li>• Status words: 'Temiz' → Clean, 'Kirli' → Dirty, 'Kapalı' → Closed</li>
+                    <li>• Special markers: 'C' → Checkout, 'B' → Daily Clean</li>
+                  </ul>
+                </div>
+              </>
             )}
 
             <div className="flex gap-2">
-              <Button 
-                onClick={handleProcessImage}
-                disabled={!selectedFile || isProcessing || showPDFMessage}
-                className="flex-1 flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                {isProcessing ? 'Processing...' : 'Detect Rooms from Image'}
-              </Button>
+              {inputMode === 'image' ? (
+                <Button 
+                  onClick={handleProcessImage}
+                  disabled={!selectedFile || isProcessing || showPDFMessage}
+                  className="flex-1 flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isProcessing ? 'Processing...' : 'Detect Rooms from Image'}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleProcessText}
+                  disabled={!textInput.trim() || isProcessing}
+                  className="flex-1 flex items-center gap-2"
+                >
+                  <Type className="w-4 h-4" />
+                  {isProcessing ? 'Parsing...' : 'Parse Text for Rooms'}
+                </Button>
+              )}
               <Button 
                 type="button" 
                 variant="outline" 
@@ -321,7 +478,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
             <div className="flex items-center gap-2 text-green-600 bg-green-50 p-2 rounded">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm font-medium">
-                Detected {detectedRooms.length} rooms - Assign statuses below
+                Detected {detectedRooms.length} rooms from {inputMode === 'image' ? 'image' : 'text'} - Assign statuses below
               </span>
             </div>
 
@@ -351,7 +508,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                 </Button>
               </div>
               <div className="text-xs text-blue-600 mt-1">
-                Add any room numbers that OCR missed
+                Add any room numbers that {inputMode === 'image' ? 'OCR' : 'text parsing'} missed
               </div>
             </div>
 
