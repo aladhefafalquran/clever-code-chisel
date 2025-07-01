@@ -19,6 +19,30 @@ interface DetectedRoom {
   status: RoomStatus | '';
 }
 
+// Direct mapping dictionary for concatenated status combinations
+const CONCATENATED_STATUS_MAPPINGS: Record<string, RoomStatus> = {
+  // Turkish combinations
+  'kapalıboş': 'closed',
+  'kapalıdolu': 'closed',
+  'temizboş': 'clean',
+  'temizdolu': 'clean',
+  'kirliboş': 'dirty',
+  'kirlidolu': 'dirty',
+  'kapalibos': 'closed', // Alternative spelling
+  'kapalidolu': 'closed',
+  // English combinations
+  'cleanavailable': 'clean',
+  'cleanoccupied': 'clean',
+  'dirtyavailable': 'dirty',
+  'dirtyoccupied': 'dirty',
+  'closedavailable': 'closed',
+  'closedoccupied': 'closed',
+  // Common variations
+  'cleanovacant': 'clean',
+  'dirtyvacant': 'dirty',
+  'closedvacant': 'closed'
+};
+
 export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProps) => {
   const [inputMode, setInputMode] = useState<'image' | 'text'>('image');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -83,6 +107,17 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     let detectedStatus: RoomStatus = 'default';
     let detectedWord = 'none';
     
+    // First, check for exact concatenated combinations
+    for (const [combination, status] of Object.entries(CONCATENATED_STATUS_MAPPINGS)) {
+      if (roomContext.includes(combination)) {
+        detectedStatus = status;
+        detectedWord = `${combination} (concatenated combination)`;
+        console.log(`✅ Room ${roomNumber}: Found concatenated "${combination}" → Status: ${detectedStatus}`);
+        return detectedStatus;
+      }
+    }
+    
+    // Fallback to individual word detection
     // Turkish status words (prioritized for better detection)
     if (roomContext.includes('temiz')) {
       detectedStatus = 'clean';
@@ -174,22 +209,22 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     // Simulate processing delay for better UX
     setTimeout(() => {
-      console.log('🚀 Processing text input...');
+      console.log('🚀 Processing text input with concatenated combination detection...');
       console.log('📄 Input text:', textInput);
       
       // Parse room numbers from text
       const roomNumbers = parseRoomNumbers(textInput);
       console.log('🏠 Detected room numbers:', roomNumbers);
       
-      console.log('🔍 Starting bilingual status detection...');
+      console.log('🔍 Starting concatenated combination detection + bilingual status detection...');
       
-      // Create room mapping structure with bilingual status detection
+      // Create room mapping structure with enhanced status detection
       const rooms: DetectedRoom[] = roomNumbers.map(number => {
         const status = parseRoomStatusFromText(textInput, number);
         return { number, status };
       });
       
-      console.log('📊 Final parsed rooms with statuses (bilingual):');
+      console.log('📊 Final parsed rooms with statuses (concatenated combinations + bilingual):');
       rooms.forEach(room => {
         const statusColors = {
           'clean': '🟢 GREEN (Clean)',
@@ -452,12 +487,12 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               <>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Paste Hotel Report Text (Turkish/English)
+                    Paste Hotel Report Text (Turkish/English + Concatenated Combinations)
                   </label>
                   <Textarea
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Paste your hotel report text here...&#10;&#10;Turkish Examples:&#10;101 DELUXE ROOM Temiz&#10;102 STANDARD ROOM Kirli&#10;103 SUITE Kapalı&#10;104 DELUXE ROOM Dolu&#10;105 STANDARD ROOM Boş&#10;&#10;English Examples:&#10;201 DELUXE ROOM Clean&#10;202 STANDARD ROOM Dirty&#10;203 SUITE Closed&#10;204 DELUXE ROOM Occupied&#10;205 STANDARD ROOM Available"
+                    placeholder="Paste your hotel report text here...&#10;&#10;Supports concatenated combinations:&#10;Turkish: KapalıBoş, TemizDolu, KirliBoş&#10;English: CleanAvailable, DirtyOccupied&#10;&#10;Turkish Examples:&#10;101 DELUXE ROOM Temiz&#10;102 STANDARD ROOM KirliBoş&#10;103 SUITE KapalıDolu&#10;&#10;English Examples:&#10;201 DELUXE ROOM CleanAvailable&#10;202 STANDARD ROOM DirtyOccupied"
                     className="min-h-[120px] w-full"
                     disabled={isProcessing}
                   />
@@ -466,36 +501,32 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                 {isProcessing && (
                   <div className="flex items-center gap-2 text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Parsing bilingual text...
+                    Parsing concatenated combinations + bilingual text...
                   </div>
                 )}
 
                 <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-1">Bilingual text parsing detects:</div>
+                  <div className="font-medium mb-1">Enhanced parsing detects concatenated combinations + individual words:</div>
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <div>
-                      <div className="font-medium text-blue-700 mb-1">Turkish:</div>
+                      <div className="font-medium text-blue-700 mb-1">Turkish Combinations:</div>
                       <ul className="space-y-1 ml-2 text-xs">
-                        <li>• 'Temiz' → Clean</li>
-                        <li>• 'Kirli' → Dirty</li>
-                        <li>• 'Kapalı' → Closed</li>
-                        <li>• 'Dolu' → Occupied</li>
-                        <li>• 'Boş' → Vacant</li>
+                        <li>• 'KapalıBoş' → Closed</li>
+                        <li>• 'TemizBoş' → Clean</li>
+                        <li>• 'KirliDolu' → Dirty</li>
                       </ul>
                     </div>
                     <div>
-                      <div className="font-medium text-green-700 mb-1">English:</div>
+                      <div className="font-medium text-green-700 mb-1">English Combinations:</div>
                       <ul className="space-y-1 ml-2 text-xs">
-                        <li>• 'Clean' → Clean</li>
-                        <li>• 'Dirty' → Dirty</li>
-                        <li>• 'Closed' → Closed</li>
-                        <li>• 'Occupied' → Occupied</li>
-                        <li>• 'Available/Vacant' → Vacant</li>
+                        <li>• 'CleanAvailable' → Clean</li>
+                        <li>• 'DirtyOccupied' → Dirty</li>
+                        <li>• 'ClosedVacant' → Closed</li>
                       </ul>
                     </div>
                   </div>
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <span className="font-medium">Special markers:</span> 'C' → Checkout, 'B' → Daily Clean
+                    <span className="font-medium">Fallback:</span> Individual words like 'Temiz', 'Clean', 'Kirli', 'Dirty'
                   </div>
                 </div>
               </>
