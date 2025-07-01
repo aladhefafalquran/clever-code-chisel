@@ -11,10 +11,11 @@ interface FilterPanelProps {
 export const FilterPanel = ({ activeFilter, onFilterChange, roomCounts }: FilterPanelProps) => {
   const filters = [
     { key: 'all' as const, label: 'All Rooms', color: 'bg-gray-500' },
-    { key: 'dirty' as const, label: 'Dirty', color: 'bg-red-500' },
+    { key: 'checkout' as const, label: 'Checkout', color: 'bg-red-500' },
+    { key: 'dirty' as const, label: 'Dirty', color: 'bg-orange-500' },
     { key: 'clean' as const, label: 'Clean', color: 'bg-green-500' },
     { key: 'default' as const, label: 'Default', color: 'bg-blue-500' },
-    { key: 'overdue' as const, label: 'Overdue', color: 'bg-gray-400' }
+    { key: 'closed' as const, label: 'Closed', color: 'bg-gray-400' }
   ];
 
   return (

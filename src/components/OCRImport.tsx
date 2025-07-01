@@ -161,7 +161,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const handleApplyChanges = () => {
-    const roomsToUpdate = detectedRooms.filter(room => room.status !== '');
+    const roomsToUpdate = detectedRooms.filter(room => room.status !== '' && room.status);
     
     if (roomsToUpdate.length === 0) {
       alert('Please assign statuses to at least one room before applying changes.');
@@ -170,7 +170,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
 
     // Apply all changes
     roomsToUpdate.forEach(room => {
-      if (room.status) {
+      if (room.status && room.status !== '') {
         onRoomStatusUpdate(room.number, room.status as RoomStatus);
       }
     });
