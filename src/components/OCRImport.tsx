@@ -81,7 +81,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     console.log(`Room ${roomNumber} context:`, roomContext);
     
-    // Turkish status words (more specific patterns)
+    // Turkish status words (prioritized for better detection)
     if (roomContext.includes('temiz')) {
       return 'clean';
     }
@@ -91,9 +91,15 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     if (roomContext.includes('kapalı') || roomContext.includes('kapali')) {
       return 'closed';
     }
+    if (roomContext.includes('dolu')) {
+      return 'checkout'; // Map 'Dolu' (Occupied) to checkout for now
+    }
+    if (roomContext.includes('boş') || roomContext.includes('bos')) {
+      return 'default'; // Map 'Boş' (Vacant) to default
+    }
     
     // English status words
-    if (roomContext.includes('clean')) {
+    if (roomContext.includes('clean') && !roomContext.includes('unclean')) {
       return 'clean';
     }
     if (roomContext.includes('dirty')) {
@@ -102,8 +108,14 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     if (roomContext.includes('closed')) {
       return 'closed';
     }
+    if (roomContext.includes('occupied')) {
+      return 'checkout'; // Map 'Occupied' to checkout for now
+    }
+    if (roomContext.includes('available') || roomContext.includes('vacant')) {
+      return 'default'; // Map 'Available/Vacant' to default
+    }
     
-    // Special markers
+    // Special markers (works for both languages)
     if (roomContext.includes(' c ') || roomContext.includes('checkout')) {
       return 'checkout';
     }
@@ -155,13 +167,13 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       const roomNumbers = parseRoomNumbers(textInput);
       console.log('Detected room numbers:', roomNumbers);
       
-      // Create room mapping structure with intelligent status detection
+      // Create room mapping structure with bilingual status detection
       const rooms: DetectedRoom[] = roomNumbers.map(number => ({
         number,
         status: parseRoomStatusFromText(textInput, number)
       }));
       
-      console.log('Parsed rooms with statuses:', rooms);
+      console.log('Parsed rooms with statuses (bilingual):', rooms);
       
       setDetectedRooms(rooms);
       setShowMapping(true);
@@ -414,12 +426,12 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               <>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Paste Hotel Report Text
+                    Paste Hotel Report Text (Turkish/English)
                   </label>
                   <Textarea
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    placeholder="Paste your hotel report text here...&#10;&#10;Example:&#10;101 DELUXE ROOM Temiz&#10;102 STANDARD ROOM Kirli&#10;103 SUITE Kapalı&#10;104 DELUXE ROOM C (checkout)&#10;105 STANDARD ROOM B (daily clean)"
+                    placeholder="Paste your hotel report text here...&#10;&#10;Turkish Examples:&#10;101 DELUXE ROOM Temiz&#10;102 STANDARD ROOM Kirli&#10;103 SUITE Kapalı&#10;104 DELUXE ROOM Dolu&#10;105 STANDARD ROOM Boş&#10;&#10;English Examples:&#10;201 DELUXE ROOM Clean&#10;202 STANDARD ROOM Dirty&#10;203 SUITE Closed&#10;204 DELUXE ROOM Occupied&#10;205 STANDARD ROOM Available"
                     className="min-h-[120px] w-full"
                     disabled={isProcessing}
                   />
@@ -428,17 +440,37 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                 {isProcessing && (
                   <div className="flex items-center gap-2 text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Parsing text...
+                    Parsing bilingual text...
                   </div>
                 )}
 
                 <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-1">Text parsing will detect:</div>
-                  <ul className="space-y-1 ml-4">
-                    <li>• Room numbers: 101, 102, 103, etc.</li>
-                    <li>• Status words: 'Temiz' → Clean, 'Kirli' → Dirty, 'Kapalı' → Closed</li>
-                    <li>• Special markers: 'C' → Checkout, 'B' → Daily Clean</li>
-                  </ul>
+                  <div className="font-medium mb-1">Bilingual text parsing detects:</div>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <div className="font-medium text-blue-700 mb-1">Turkish:</div>
+                      <ul className="space-y-1 ml-2 text-xs">
+                        <li>• 'Temiz' → Clean</li>
+                        <li>• 'Kirli' → Dirty</li>
+                        <li>• 'Kapalı' → Closed</li>
+                        <li>• 'Dolu' → Occupied</li>
+                        <li>• 'Boş' → Vacant</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-medium text-green-700 mb-1">English:</div>
+                      <ul className="space-y-1 ml-2 text-xs">
+                        <li>• 'Clean' → Clean</li>
+                        <li>• 'Dirty' → Dirty</li>
+                        <li>• 'Closed' → Closed</li>
+                        <li>• 'Occupied' → Occupied</li>
+                        <li>• 'Available/Vacant' → Vacant</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <span className="font-medium">Special markers:</span> 'C' → Checkout, 'B' → Daily Clean
+                  </div>
                 </div>
               </>
             )}
