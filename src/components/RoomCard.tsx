@@ -34,9 +34,11 @@ export const RoomCard = ({
   const statusConfig = ROOM_STATUS_CONFIG[room.status];
   
   const statusOptions: { status: RoomStatus; label: string }[] = [
-    { status: 'clean', label: 'Clean' },
+    { status: 'checkout', label: 'Checkout (Urgent)' },
     { status: 'dirty', label: 'Dirty' },
-    { status: 'default', label: 'Default' }
+    { status: 'clean', label: 'Clean' },
+    { status: 'default', label: 'Default' },
+    { status: 'closed', label: 'Closed' }
   ];
 
   const handleStatusSelect = (status: RoomStatus) => {

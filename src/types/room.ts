@@ -1,5 +1,5 @@
 
-export type RoomStatus = 'clean' | 'dirty' | 'default' | 'overdue';
+export type RoomStatus = 'checkout' | 'dirty' | 'clean' | 'default' | 'closed';
 
 export interface Room {
   number: string;
@@ -18,17 +18,23 @@ export interface RoomStatusConfig {
 }
 
 export const ROOM_STATUS_CONFIG: Record<RoomStatus, RoomStatusConfig> = {
+  checkout: {
+    label: 'Checkout (Urgent)',
+    color: 'text-red-800',
+    bgColor: 'bg-red-500',
+    borderColor: 'border-red-600'
+  },
+  dirty: {
+    label: 'Dirty',
+    color: 'text-orange-800',
+    bgColor: 'bg-orange-500',
+    borderColor: 'border-orange-600'
+  },
   clean: {
     label: 'Clean/Ready',
     color: 'text-green-800',
     bgColor: 'bg-green-500',
     borderColor: 'border-green-600'
-  },
-  dirty: {
-    label: 'Dirty/Needs Cleaning',
-    color: 'text-red-800',
-    bgColor: 'bg-red-500',
-    borderColor: 'border-red-600'
   },
   default: {
     label: 'Default/No Action',
@@ -36,8 +42,8 @@ export const ROOM_STATUS_CONFIG: Record<RoomStatus, RoomStatusConfig> = {
     bgColor: 'bg-blue-500',
     borderColor: 'border-blue-600'
   },
-  overdue: {
-    label: 'Overdue for Cleaning',
+  closed: {
+    label: 'Closed/Unavailable',
     color: 'text-gray-800',
     bgColor: 'bg-gray-500',
     borderColor: 'border-gray-600'

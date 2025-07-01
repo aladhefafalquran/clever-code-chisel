@@ -106,26 +106,38 @@ export const BulkSelectionPanel = ({
         {selectedRooms.length > 0 && showSelection && (
           <div className="flex items-center gap-2 ml-auto">
             <Select value={selectedAction} onValueChange={setSelectedAction}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="checkout">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    Checkout (Urgent)
+                  </div>
+                </SelectItem>
+                <SelectItem value="dirty">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500" />
+                    Dirty
+                  </div>
+                </SelectItem>
                 <SelectItem value="clean">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                     Clean
                   </div>
                 </SelectItem>
-                <SelectItem value="dirty">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    Dirty
-                  </div>
-                </SelectItem>
                 <SelectItem value="default">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-blue-500" />
                     Default
+                  </div>
+                </SelectItem>
+                <SelectItem value="closed">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-500" />
+                    Closed
                   </div>
                 </SelectItem>
                 {isAdmin && (

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +54,27 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     return roomNumbers;
   };
 
+  const parseRoomStatus = (text: string, roomNumber: string): RoomStatus => {
+    const lowerText = text.toLowerCase();
+    const roomContext = text.substring(Math.max(0, text.indexOf(roomNumber) - 50), text.indexOf(roomNumber) + 50).toLowerCase();
+    
+    // Look for status indicators near the room number
+    if (roomContext.includes('c') || roomContext.includes('checkout')) {
+      return 'checkout';
+    }
+    if (roomContext.includes('dirty') || roomContext.includes('kirli')) {
+      return 'dirty';
+    }
+    if (roomContext.includes('clean') || roomContext.includes('temiz')) {
+      return 'clean';
+    }
+    if (roomContext.includes('closed') || roomContext.includes('kapalı') || roomContext.includes('kapali')) {
+      return 'closed';
+    }
+    
+    return 'default';
+  };
+
   const handleProcessImage = async () => {
     if (!selectedFile) return;
 
@@ -84,10 +104,10 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       const roomNumbers = parseRoomNumbers(text);
       console.log('Detected room numbers:', roomNumbers);
       
-      // Create room mapping structure
+      // Create room mapping structure with intelligent status detection
       const rooms: DetectedRoom[] = roomNumbers.map(number => ({
         number,
-        status: ''
+        status: parseRoomStatus(text, number)
       }));
       
       setDetectedRooms(rooms);
@@ -156,12 +176,14 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     });
 
     const statusCounts = {
-      clean: roomsToUpdate.filter(r => r.status === 'clean').length,
+      checkout: roomsToUpdate.filter(r => r.status === 'checkout').length,
       dirty: roomsToUpdate.filter(r => r.status === 'dirty').length,
-      default: roomsToUpdate.filter(r => r.status === 'default').length
+      clean: roomsToUpdate.filter(r => r.status === 'clean').length,
+      default: roomsToUpdate.filter(r => r.status === 'default').length,
+      closed: roomsToUpdate.filter(r => r.status === 'closed').length
     };
 
-    alert(`Applied changes to ${roomsToUpdate.length} rooms:\n${statusCounts.clean} Clean, ${statusCounts.dirty} Dirty, ${statusCounts.default} Default`);
+    alert(`Applied changes to ${roomsToUpdate.length} rooms:\n${statusCounts.checkout} Checkout, ${statusCounts.dirty} Dirty, ${statusCounts.clean} Clean, ${statusCounts.default} Default, ${statusCounts.closed} Closed`);
     
     handleClose();
   };
@@ -302,23 +324,54 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                     value={room.status} 
                     onValueChange={(value) => handleStatusChange(room.number, value)}
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="clean">Clean</SelectItem>
-                      <SelectItem value="dirty">Dirty</SelectItem>
-                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="checkout">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          Checkout (Urgent)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="dirty">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-orange-500" />
+                          Dirty
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="clean">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-green-500" />
+                          Clean
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="default">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-blue-500" />
+                          Default
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="closed">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-gray-500" />
+                          Closed
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {room.status && room.status !== '' && (
                     <div className={`text-xs px-2 py-1 rounded ${
+                      room.status === 'checkout' ? 'bg-red-100 text-red-800' :
+                      room.status === 'dirty' ? 'bg-orange-100 text-orange-800' :
                       room.status === 'clean' ? 'bg-green-100 text-green-800' :
-                      room.status === 'dirty' ? 'bg-red-100 text-red-800' :
+                      room.status === 'closed' ? 'bg-gray-100 text-gray-800' :
                       'bg-blue-100 text-blue-800'
                     }`}>
-                      {room.status === 'clean' ? 'Clean' : 
-                       room.status === 'dirty' ? 'Dirty' : 'Default'}
+                      {room.status === 'checkout' ? 'Checkout' : 
+                       room.status === 'dirty' ? 'Dirty' : 
+                       room.status === 'clean' ? 'Clean' :
+                       room.status === 'closed' ? 'Closed' : 'Default'}
                     </div>
                   )}
                 </div>
