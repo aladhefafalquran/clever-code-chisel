@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Upload, Loader2, CheckCircle } from 'lucide-react';
+import { X, Upload, Loader2, CheckCircle, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Tesseract from 'tesseract.js';
 import { RoomStatus } from '@/types/room';
@@ -24,6 +23,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   const [progress, setProgress] = useState(0);
   const [detectedRooms, setDetectedRooms] = useState<DetectedRoom[]>([]);
   const [showMapping, setShowMapping] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -109,6 +109,36 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     );
   };
 
+  const handleAddRoom = () => {
+    const roomNumber = newRoomNumber.trim();
+    
+    if (!roomNumber) {
+      alert('Please enter a room number.');
+      return;
+    }
+
+    // Validate room number format (should be 3-4 digits)
+    if (!/^\d{3,4}$/.test(roomNumber)) {
+      alert('Please enter a valid room number (3-4 digits).');
+      return;
+    }
+
+    // Check if room already exists
+    if (detectedRooms.some(room => room.number === roomNumber)) {
+      alert('This room number already exists in the list.');
+      return;
+    }
+
+    // Add the new room to the list
+    const newRoom: DetectedRoom = {
+      number: roomNumber,
+      status: null
+    };
+
+    setDetectedRooms(prev => [...prev, newRoom].sort((a, b) => parseInt(a.number) - parseInt(b.number)));
+    setNewRoomNumber('');
+  };
+
   const handleApplyChanges = () => {
     const roomsToUpdate = detectedRooms.filter(room => room.status !== null);
     
@@ -141,6 +171,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     setProgress(0);
     setDetectedRooms([]);
     setShowMapping(false);
+    setNewRoomNumber('');
     onClose();
   };
 
@@ -228,6 +259,36 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               <span className="text-sm font-medium">
                 Detected {detectedRooms.length} rooms - Assign statuses below
               </span>
+            </div>
+
+            {/* Add Missing Room Section */}
+            <div className="border rounded-lg p-3 bg-blue-50">
+              <div className="text-sm font-medium text-blue-800 mb-2">Add Missing Room</div>
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="Enter room number (e.g., 507)"
+                  value={newRoomNumber}
+                  onChange={(e) => setNewRoomNumber(e.target.value)}
+                  className="flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddRoom();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleAddRoom}
+                  size="sm"
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Room
+                </Button>
+              </div>
+              <div className="text-xs text-blue-600 mt-1">
+                Add any room numbers that OCR missed
+              </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto space-y-2">
