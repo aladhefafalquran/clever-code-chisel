@@ -1,15 +1,10 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X, Upload, Loader2, CheckCircle, Plus } from 'lucide-react';
+import { X, Upload, Loader2, CheckCircle, Plus, FileText, Camera } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Tesseract from 'tesseract.js';
-import * as pdfjsLib from 'pdfjs-dist';
 import { RoomStatus } from '@/types/room';
-
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface OCRImportProps {
   onClose: () => void;
@@ -29,15 +24,24 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   const [detectedRooms, setDetectedRooms] = useState<DetectedRoom[]>([]);
   const [showMapping, setShowMapping] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [showPDFMessage, setShowPDFMessage] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'application/pdf')) {
-      setSelectedFile(file);
-      setDetectedRooms([]);
-      setShowMapping(false);
-    } else {
-      alert('Please select a JPG, PNG, or PDF file.');
+    if (file) {
+      if (file.type === 'application/pdf') {
+        setSelectedFile(file);
+        setShowPDFMessage(true);
+        setDetectedRooms([]);
+        setShowMapping(false);
+      } else if (file.type === 'image/jpeg' || file.type === 'image/png') {
+        setSelectedFile(file);
+        setShowPDFMessage(false);
+        setDetectedRooms([]);
+        setShowMapping(false);
+      } else {
+        alert('Please select a JPG, PNG, or PDF file.');
+      }
     }
   };
 
@@ -83,74 +87,39 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     return 'default';
   };
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    console.log('Starting PDF text extraction...');
-    
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
-    let fullText = '';
-    const totalPages = pdf.numPages;
-    
-    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      setProgress(Math.round((pageNum / totalPages) * 100));
-      
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
-      console.log(`Extracted text from page ${pageNum}/${totalPages}`);
-    }
-    
-    console.log('PDF text extraction complete');
-    return fullText;
-  };
-
   const handleProcessImage = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || selectedFile.type === 'application/pdf') return;
 
     setIsProcessing(true);
     setProgress(0);
 
     try {
-      let extractedText = '';
-
-      if (selectedFile.type === 'application/pdf') {
-        console.log('Processing PDF file...');
-        extractedText = await extractTextFromPDF(selectedFile);
-      } else {
-        console.log('Starting OCR processing...');
-        
-        const { data: { text } } = await Tesseract.recognize(
-          selectedFile,
-          'tur', // Turkish language support
-          {
-            logger: (m) => {
-              console.log(m);
-              if (m.status === 'recognizing text') {
-                setProgress(Math.round(m.progress * 100));
-              }
+      console.log('Starting OCR processing...');
+      
+      const { data: { text } } = await Tesseract.recognize(
+        selectedFile,
+        'tur', // Turkish language support
+        {
+          logger: (m) => {
+            console.log(m);
+            if (m.status === 'recognizing text') {
+              setProgress(Math.round(m.progress * 100));
             }
           }
-        );
-        extractedText = text;
-        console.log('OCR processing complete');
-      }
-
-      console.log('Detected text:', extractedText);
+        }
+      );
+      
+      console.log('OCR processing complete');
+      console.log('Detected text:', text);
       
       // Parse room numbers from extracted text
-      const roomNumbers = parseRoomNumbers(extractedText);
+      const roomNumbers = parseRoomNumbers(text);
       console.log('Detected room numbers:', roomNumbers);
       
       // Create room mapping structure with intelligent status detection
       const rooms: DetectedRoom[] = roomNumbers.map(number => ({
         number,
-        status: parseRoomStatus(extractedText, number)
+        status: parseRoomStatus(text, number)
       }));
       
       setDetectedRooms(rooms);
@@ -158,7 +127,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       
     } catch (error) {
       console.error('Processing failed:', error);
-      alert('File processing failed. Please try again.');
+      alert('Image processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
       setProgress(0);
@@ -238,6 +207,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     setDetectedRooms([]);
     setShowMapping(false);
     setNewRoomNumber('');
+    setShowPDFMessage(false);
     onClose();
   };
 
@@ -274,9 +244,35 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               />
             </div>
 
-            {selectedFile && (
+            {selectedFile && !showPDFMessage && (
               <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                Selected: {selectedFile.name} ({selectedFile.type === 'application/pdf' ? 'PDF' : 'Image'})
+                Selected: {selectedFile.name} (Image)
+              </div>
+            )}
+
+            {showPDFMessage && selectedFile && (
+              <div className="space-y-3">
+                <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded border border-orange-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="font-medium">PDF Support Coming Soon</span>
+                  </div>
+                  <p className="text-xs">
+                    Selected: {selectedFile.name} - PDF processing is temporarily unavailable due to technical issues.
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Camera className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Workaround Options:</span>
+                  </div>
+                  <ul className="text-xs text-blue-700 space-y-1 ml-6">
+                    <li>• Take screenshots of your PDF report pages</li>
+                    <li>• Export/print PDF pages as JPG or PNG images</li>
+                    <li>• Upload the converted images using the image OCR above</li>
+                  </ul>
+                </div>
               </div>
             )}
 
@@ -284,10 +280,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {selectedFile?.type === 'application/pdf' 
-                    ? `Extracting text from PDF... ${progress}%`
-                    : `Processing image... ${progress}%`
-                  }
+                  Processing image... {progress}%
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -298,21 +291,20 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
               </div>
             )}
 
-            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-              {selectedFile?.type === 'application/pdf' 
-                ? 'PDF text extraction will detect room numbers and statuses from your hotel management reports.'
-                : 'OCR will detect room numbers from images, then you can manually assign statuses.'
-              }
-            </div>
+            {!showPDFMessage && (
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                OCR will detect room numbers from images, then you can manually assign statuses.
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button 
                 onClick={handleProcessImage}
-                disabled={!selectedFile || isProcessing}
+                disabled={!selectedFile || isProcessing || showPDFMessage}
                 className="flex-1 flex items-center gap-2"
               >
                 <Upload className="w-4 h-4" />
-                {isProcessing ? 'Processing...' : selectedFile?.type === 'application/pdf' ? 'Extract from PDF' : 'Detect Rooms'}
+                {isProcessing ? 'Processing...' : 'Detect Rooms from Image'}
               </Button>
               <Button 
                 type="button" 
