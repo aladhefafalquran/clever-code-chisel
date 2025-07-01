@@ -92,7 +92,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   };
 
   const parseRoomStatusFromText = (text: string, roomNumber: string): RoomStatus => {
-    console.log(`🔍 DEBUGGING Room ${roomNumber}:`);
+    console.log('Processing room:', roomNumber);
     
     // Find all occurrences of the room number in the text
     const textLines = text.split('\n');
@@ -110,6 +110,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     if (roomLineIndex === -1) {
       console.log(`❌ Room ${roomNumber}: Not found in text`);
+      console.log('Mapped to color: BLUE (Default), Occupied: Unknown');
       return 'default';
     }
     
@@ -117,82 +118,105 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     const contextLines = textLines.slice(roomLineIndex, Math.min(roomLineIndex + 3, textLines.length));
     const roomContext = contextLines.join(' ').toLowerCase();
     
-    console.log(`📍 Room ${roomNumber} found on line ${roomLineIndex}:`);
-    console.log(`   Original line: "${roomLine}"`);
-    console.log(`   Context (3 lines): "${roomContext}"`);
+    console.log('Found text segment:', roomContext);
     
     let detectedStatus: RoomStatus = 'default';
-    let detectedWord = 'none';
+    let detectedStatusCombo = 'none';
+    let isOccupied = 'Unknown';
     
-    // First, check for exact concatenated combinations
+    // First, check for exact concatenated combinations (case-insensitive)
     for (const [combination, status] of Object.entries(CONCATENATED_STATUS_MAPPINGS)) {
-      if (roomContext.includes(combination)) {
+      if (roomContext.includes(combination.toLowerCase())) {
         detectedStatus = status;
-        detectedWord = `${combination} (concatenated combination)`;
-        console.log(`✅ Room ${roomNumber}: Found concatenated "${combination}" → Status: ${detectedStatus}`);
+        detectedStatusCombo = combination;
+        
+        // Determine occupancy from the combination
+        if (combination.toLowerCase().includes('boş') || combination.toLowerCase().includes('bos') || 
+            combination.toLowerCase().includes('available') || combination.toLowerCase().includes('vacant')) {
+          isOccupied = 'Vacant';
+        } else if (combination.toLowerCase().includes('dolu') || combination.toLowerCase().includes('occupied')) {
+          isOccupied = 'Occupied';
+        }
+        
+        console.log('Detected status combination:', detectedStatusCombo);
         break;
       }
     }
     
     // If no concatenated combination found, check individual words
-    if (detectedWord === 'none') {
+    if (detectedStatusCombo === 'none') {
+      console.log('No concatenated combination found, checking individual words...');
+      
       // Turkish status words (prioritized for better detection)
       if (roomContext.includes('temiz')) {
         detectedStatus = 'clean';
-        detectedWord = 'temiz (Turkish)';
+        detectedStatusCombo = 'temiz (Turkish individual)';
       } else if (roomContext.includes('kirli')) {
         detectedStatus = 'dirty';
-        detectedWord = 'kirli (Turkish)';
+        detectedStatusCombo = 'kirli (Turkish individual)';
       } else if (roomContext.includes('kapalı') || roomContext.includes('kapali')) {
         detectedStatus = 'closed';
-        detectedWord = 'kapalı/kapali (Turkish)';
+        detectedStatusCombo = 'kapalı/kapali (Turkish individual)';
       } else if (roomContext.includes('dolu')) {
         detectedStatus = 'checkout'; // Map 'Dolu' (Occupied) to checkout for now
-        detectedWord = 'dolu (Turkish)';
+        detectedStatusCombo = 'dolu (Turkish individual)';
+        isOccupied = 'Occupied';
       } else if (roomContext.includes('boş') || roomContext.includes('bos')) {
         detectedStatus = 'default'; // Map 'Boş' (Vacant) to default
-        detectedWord = 'boş/bos (Turkish)';
+        detectedStatusCombo = 'boş/bos (Turkish individual)';
+        isOccupied = 'Vacant';
       }
       // English status words
       else if (roomContext.includes('clean') && !roomContext.includes('unclean')) {
         detectedStatus = 'clean';
-        detectedWord = 'clean (English)';
+        detectedStatusCombo = 'clean (English individual)';
       } else if (roomContext.includes('dirty')) {
         detectedStatus = 'dirty';
-        detectedWord = 'dirty (English)';
+        detectedStatusCombo = 'dirty (English individual)';
       } else if (roomContext.includes('closed')) {
         detectedStatus = 'closed';
-        detectedWord = 'closed (English)';
+        detectedStatusCombo = 'closed (English individual)';
       } else if (roomContext.includes('occupied')) {
         detectedStatus = 'checkout'; // Map 'Occupied' to checkout for now
-        detectedWord = 'occupied (English)';
+        detectedStatusCombo = 'occupied (English individual)';
+        isOccupied = 'Occupied';
       } else if (roomContext.includes('available') || roomContext.includes('vacant')) {
         detectedStatus = 'default'; // Map 'Available/Vacant' to default
-        detectedWord = 'available/vacant (English)';
+        detectedStatusCombo = 'available/vacant (English individual)';
+        isOccupied = 'Vacant';
       }
       // Special markers (works for both languages)
       else if (roomContext.includes(' c ') || roomContext.includes('checkout')) {
         detectedStatus = 'checkout';
-        detectedWord = 'checkout marker';
+        detectedStatusCombo = 'checkout marker';
       } else if (roomContext.includes(' b ') || roomContext.includes('daily clean')) {
         detectedStatus = 'dirty';
-        detectedWord = 'daily clean marker';
+        detectedStatusCombo = 'daily clean marker';
       }
       
-      console.log(`✅ Room ${roomNumber}: Found individual word "${detectedWord}" → Status: ${detectedStatus}`);
+      console.log('Detected status combination:', detectedStatusCombo);
     }
     
-    // Enhanced logging with color indicators
-    const statusColors = {
-      'clean': '🟢 GREEN (Clean)',
-      'dirty': '🟠 ORANGE (Dirty)', 
-      'closed': '⚫ GRAY (Closed)',
-      'checkout': '🔴 RED (Checkout)',
-      'default': '🔵 BLUE (Default)'
+    // Map status to color name for logging
+    const statusToColor = {
+      'clean': 'GREEN',
+      'dirty': 'ORANGE', 
+      'closed': 'GRAY',
+      'checkout': 'RED',
+      'default': 'BLUE'
     };
     
-    console.log(`🎯 FINAL RESULT - Room ${roomNumber}: "${detectedWord}" → ${statusColors[detectedStatus]}`);
-    console.log(`---`);
+    const color = statusToColor[detectedStatus] || 'BLUE';
+    console.log('Mapped to color:', color, 'Occupied:', isOccupied);
+    
+    // If no pattern matched, log the fallback
+    if (detectedStatusCombo === 'none') {
+      console.log('⚠️ FALLBACK: No pattern matched for room', roomNumber);
+      console.log('Text found around room:', roomContext.substring(0, 100));
+      console.log('Defaulting to BLUE (Default) status');
+    }
+    
+    console.log('---');
     
     return detectedStatus;
   };
@@ -231,14 +255,14 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     // Simulate processing delay for better UX
     setTimeout(() => {
-      console.log('🚀 Processing text input with IMPROVED concatenated combination detection...');
+      console.log('🚀 Processing text input with ENHANCED DEBUG concatenated combination detection...');
       console.log('📄 Input text preview:', textInput.substring(0, 200) + '...');
       
       // Parse room numbers from text
       const roomNumbers = parseRoomNumbers(textInput);
       console.log('🏠 Detected room numbers:', roomNumbers);
       
-      console.log('🔍 Starting IMPROVED status detection with better context extraction...');
+      console.log('🔍 Starting ENHANCED DEBUG status detection...');
       console.log('===============================================');
       
       // Create room mapping structure with enhanced status detection
@@ -525,32 +549,32 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                 {isProcessing && (
                   <div className="flex items-center gap-2 text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Parsing IMPROVED concatenated combinations + bilingual text...
+                    Parsing ENHANCED DEBUG concatenated combinations + bilingual text...
                   </div>
                 )}
 
                 <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                  <div className="font-medium mb-1">IMPROVED parsing with better context detection:</div>
+                  <div className="font-medium mb-1">ENHANCED DEBUG parsing with detailed logging:</div>
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <div>
                       <div className="font-medium text-blue-700 mb-1">Turkish Combinations:</div>
                       <ul className="space-y-1 ml-2 text-xs">
-                        <li>• 'KapalıBoş' → Closed</li>
-                        <li>• 'TemizBoş' → Clean</li>
-                        <li>• 'KirliDolu' → Dirty</li>
+                        <li>• 'TemizDolu' → GREEN + Occupied</li>
+                        <li>• 'KirliBoş' → ORANGE + Vacant</li>
+                        <li>• 'KapalıBoş' → GRAY + Vacant</li>
                       </ul>
                     </div>
                     <div>
                       <div className="font-medium text-green-700 mb-1">English Combinations:</div>
                       <ul className="space-y-1 ml-2 text-xs">
-                        <li>• 'CleanAvailable' → Clean</li>
-                        <li>• 'DirtyOccupied' → Dirty</li>
-                        <li>• 'ClosedVacant' → Closed</li>
+                        <li>• 'CleanAvailable' → GREEN + Vacant</li>
+                        <li>• 'DirtyOccupied' → ORANGE + Occupied</li>
+                        <li>• 'ClosedVacant' → GRAY + Vacant</li>
                       </ul>
                     </div>
                   </div>
                   <div className="mt-2 pt-2 border-t border-gray-200">
-                    <span className="font-medium">Enhanced:</span> Better line-by-line parsing with detailed debug logs
+                    <span className="font-medium">Enhanced:</span> Step-by-step debug logs show exact text segments and color mappings
                   </div>
                 </div>
               </>
@@ -573,7 +597,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
                   className="flex-1 flex items-center gap-2"
                 >
                   <Type className="w-4 h-4" />
-                  {isProcessing ? 'Parsing...' : 'Parse Text for Rooms (IMPROVED)'}
+                  {isProcessing ? 'Parsing...' : 'Parse Text for Rooms (ENHANCED DEBUG)'}
                 </Button>
               )}
               <Button 
