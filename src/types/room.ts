@@ -49,3 +49,14 @@ export const ROOM_STATUS_CONFIG: Record<RoomStatus, RoomStatusConfig> = {
     borderColor: 'border-gray-600'
   }
 };
+
+// Helper function to get occupancy workflow priority
+export const getWorkflowPriority = (room: Room): 'immediate' | 'after-checkout' | 'normal' => {
+  if (!room.hasGuests && (room.status === 'dirty' || room.status === 'checkout')) {
+    return 'immediate'; // Vacant + needs cleaning = immediate priority
+  }
+  if (room.hasGuests && (room.status === 'dirty' || room.status === 'checkout')) {
+    return 'after-checkout'; // Occupied + needs cleaning = clean after checkout
+  }
+  return 'normal';
+};

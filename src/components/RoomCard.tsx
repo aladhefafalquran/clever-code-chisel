@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Room, RoomStatus, ROOM_STATUS_CONFIG } from '@/types/room';
+import { Room, RoomStatus, ROOM_STATUS_CONFIG, getWorkflowPriority } from '@/types/room';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, UserCheck } from 'lucide-react';
+import { User, UserCheck, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RoomCardProps {
@@ -32,6 +32,7 @@ export const RoomCard = ({
   onSelect
 }: RoomCardProps) => {
   const statusConfig = ROOM_STATUS_CONFIG[room.status];
+  const workflowPriority = getWorkflowPriority(room);
   
   const statusOptions: { status: RoomStatus; label: string }[] = [
     { status: 'checkout', label: 'Checkout (Urgent)' },
@@ -65,33 +66,39 @@ export const RoomCard = ({
     }
   };
 
+  // Get border style based on occupancy and workflow priority
+  const getBorderStyle = () => {
+    let borderClass = statusConfig.borderColor;
+    
+    if (workflowPriority === 'immediate') {
+      borderClass += ' border-4'; // Thicker border for immediate priority
+    } else if (room.hasGuests) {
+      borderClass += ' border-dashed'; // Dashed border for occupied rooms
+    }
+    
+    return borderClass;
+  };
+
   return (
     <div className="relative">
       <div
         className={cn(
           "relative rounded-lg border-2 overflow-hidden transition-all duration-200",
-          statusConfig.borderColor,
+          getBorderStyle(),
           isSelected && "ring-4 ring-blue-300",
           "min-h-[120px] md:min-h-[140px] h-full"
         )}
       >
-        {/* Guest Status Icon - Always shown when guest is present */}
-        {room.hasGuests && (
-          <div className="absolute top-2 right-2 z-10">
-            <User className="w-4 h-4 text-white bg-orange-500 rounded-full p-0.5" />
-          </div>
-        )}
-
         {/* Admin Guest Toggle (only for admin) */}
         {isAdmin && (
           <button
             onClick={handleGuestToggle}
-            className="absolute top-2 right-6 z-20 p-1 h-6 w-6 rounded-md bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm border border-white/20"
+            className="absolute top-2 right-2 z-20 p-1 h-7 w-7 rounded-md bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm border border-white/20"
           >
             {room.hasGuests ? (
-              <UserCheck className="w-3 h-3 text-white" />
+              <Users className="w-4 h-4 text-white" />
             ) : (
-              <User className="w-3 h-3 text-white/70" />
+              <User className="w-4 h-4 text-white/70" />
             )}
           </button>
         )}
@@ -107,6 +114,13 @@ export const RoomCard = ({
           </div>
         )}
 
+        {/* Workflow Priority Indicator */}
+        {workflowPriority === 'immediate' && (
+          <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-black text-xs px-2 py-1 rounded-full font-bold">
+            PRIORITY
+          </div>
+        )}
+
         {/* Main Room Content - Either clickable for selection or dropdown for status */}
         {showSelection ? (
           <button
@@ -117,13 +131,34 @@ export const RoomCard = ({
               "hover:opacity-90 active:opacity-80"
             )}
           >
-            <div className="text-2xl md:text-3xl font-bold mb-1">
+            <div className="text-2xl md:text-3xl font-bold mb-2">
               {room.number}
             </div>
             
-            {room.hasGuests && (
-              <div className="text-xs opacity-90">
-                Guest Present
+            {/* Enhanced Occupancy Display */}
+            <div className="flex items-center gap-2 text-sm opacity-95">
+              {room.hasGuests ? (
+                <>
+                  <Users className="w-4 h-4" />
+                  <span className="font-medium">Occupied</span>
+                </>
+              ) : (
+                <>
+                  <User className="w-4 h-4" />
+                  <span className="font-medium">Vacant</span>
+                </>
+              )}
+            </div>
+
+            {/* Workflow Status */}
+            {workflowPriority === 'immediate' && (
+              <div className="text-xs mt-1 bg-yellow-400 text-black px-2 py-1 rounded">
+                Clean Now
+              </div>
+            )}
+            {workflowPriority === 'after-checkout' && (
+              <div className="text-xs mt-1 bg-orange-300 text-black px-2 py-1 rounded">
+                Clean After Checkout
               </div>
             )}
           </button>
@@ -137,13 +172,34 @@ export const RoomCard = ({
                   "hover:opacity-90 active:opacity-80"
                 )}
               >
-                <div className="text-2xl md:text-3xl font-bold mb-1">
+                <div className="text-2xl md:text-3xl font-bold mb-2">
                   {room.number}
                 </div>
                 
-                {room.hasGuests && (
-                  <div className="text-xs opacity-90">
-                    Guest Present
+                {/* Enhanced Occupancy Display */}
+                <div className="flex items-center gap-2 text-sm opacity-95">
+                  {room.hasGuests ? (
+                    <>
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">Occupied</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4" />
+                      <span className="font-medium">Vacant</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Workflow Status */}
+                {workflowPriority === 'immediate' && (
+                  <div className="text-xs mt-1 bg-yellow-400 text-black px-2 py-1 rounded">
+                    Clean Now
+                  </div>
+                )}
+                {workflowPriority === 'after-checkout' && (
+                  <div className="text-xs mt-1 bg-orange-300 text-black px-2 py-1 rounded">
+                    Clean After Checkout
                   </div>
                 )}
               </button>
@@ -158,13 +214,13 @@ export const RoomCard = ({
                 >
                   <div className="w-4 h-4 flex items-center justify-center">
                     {room.hasGuests ? (
-                      <UserCheck className="w-4 h-4 text-green-600" />
+                      <Users className="w-4 h-4 text-green-600" />
                     ) : (
                       <User className="w-4 h-4 text-gray-400" />
                     )}
                   </div>
                   <span className="font-medium">
-                    {room.hasGuests ? 'Remove Guest' : 'Add Guest'}
+                    {room.hasGuests ? 'Mark as Vacant' : 'Mark as Occupied'}
                   </span>
                 </DropdownMenuItem>
               )}
