@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,51 +78,66 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     const contextEnd = Math.min(text.length, roomIndex + roomNumber.length + 50);
     const roomContext = text.substring(contextStart, contextEnd).toLowerCase();
     
-    console.log(`Room ${roomNumber} context:`, roomContext);
+    console.log(`🔍 Room ${roomNumber} context:`, roomContext);
+    
+    let detectedStatus: RoomStatus = 'default';
+    let detectedWord = 'none';
     
     // Turkish status words (prioritized for better detection)
     if (roomContext.includes('temiz')) {
-      return 'clean';
+      detectedStatus = 'clean';
+      detectedWord = 'temiz (Turkish)';
+    } else if (roomContext.includes('kirli')) {
+      detectedStatus = 'dirty';
+      detectedWord = 'kirli (Turkish)';
+    } else if (roomContext.includes('kapalı') || roomContext.includes('kapali')) {
+      detectedStatus = 'closed';
+      detectedWord = 'kapalı/kapali (Turkish)';
+    } else if (roomContext.includes('dolu')) {
+      detectedStatus = 'checkout'; // Map 'Dolu' (Occupied) to checkout for now
+      detectedWord = 'dolu (Turkish)';
+    } else if (roomContext.includes('boş') || roomContext.includes('bos')) {
+      detectedStatus = 'default'; // Map 'Boş' (Vacant) to default
+      detectedWord = 'boş/bos (Turkish)';
     }
-    if (roomContext.includes('kirli')) {
-      return 'dirty';
-    }
-    if (roomContext.includes('kapalı') || roomContext.includes('kapali')) {
-      return 'closed';
-    }
-    if (roomContext.includes('dolu')) {
-      return 'checkout'; // Map 'Dolu' (Occupied) to checkout for now
-    }
-    if (roomContext.includes('boş') || roomContext.includes('bos')) {
-      return 'default'; // Map 'Boş' (Vacant) to default
-    }
-    
     // English status words
-    if (roomContext.includes('clean') && !roomContext.includes('unclean')) {
-      return 'clean';
+    else if (roomContext.includes('clean') && !roomContext.includes('unclean')) {
+      detectedStatus = 'clean';
+      detectedWord = 'clean (English)';
+    } else if (roomContext.includes('dirty')) {
+      detectedStatus = 'dirty';
+      detectedWord = 'dirty (English)';
+    } else if (roomContext.includes('closed')) {
+      detectedStatus = 'closed';
+      detectedWord = 'closed (English)';
+    } else if (roomContext.includes('occupied')) {
+      detectedStatus = 'checkout'; // Map 'Occupied' to checkout for now
+      detectedWord = 'occupied (English)';
+    } else if (roomContext.includes('available') || roomContext.includes('vacant')) {
+      detectedStatus = 'default'; // Map 'Available/Vacant' to default
+      detectedWord = 'available/vacant (English)';
     }
-    if (roomContext.includes('dirty')) {
-      return 'dirty';
-    }
-    if (roomContext.includes('closed')) {
-      return 'closed';
-    }
-    if (roomContext.includes('occupied')) {
-      return 'checkout'; // Map 'Occupied' to checkout for now
-    }
-    if (roomContext.includes('available') || roomContext.includes('vacant')) {
-      return 'default'; // Map 'Available/Vacant' to default
-    }
-    
     // Special markers (works for both languages)
-    if (roomContext.includes(' c ') || roomContext.includes('checkout')) {
-      return 'checkout';
-    }
-    if (roomContext.includes(' b ') || roomContext.includes('daily clean')) {
-      return 'dirty';
+    else if (roomContext.includes(' c ') || roomContext.includes('checkout')) {
+      detectedStatus = 'checkout';
+      detectedWord = 'checkout marker';
+    } else if (roomContext.includes(' b ') || roomContext.includes('daily clean')) {
+      detectedStatus = 'dirty';
+      detectedWord = 'daily clean marker';
     }
     
-    return 'default';
+    // Enhanced logging with color indicators
+    const statusColors = {
+      'clean': '🟢 GREEN',
+      'dirty': '🟠 ORANGE', 
+      'closed': '⚫ GRAY',
+      'checkout': '🔴 RED',
+      'default': '🔵 BLUE'
+    };
+    
+    console.log(`✅ Room ${roomNumber}: Found "${detectedWord}" → Status: ${detectedStatus} (${statusColors[detectedStatus]})`);
+    
+    return detectedStatus;
   };
 
   const parseRoomStatus = (text: string, roomNumber: string): RoomStatus => {
@@ -160,20 +174,32 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     
     // Simulate processing delay for better UX
     setTimeout(() => {
-      console.log('Processing text input...');
-      console.log('Input text:', textInput);
+      console.log('🚀 Processing text input...');
+      console.log('📄 Input text:', textInput);
       
       // Parse room numbers from text
       const roomNumbers = parseRoomNumbers(textInput);
-      console.log('Detected room numbers:', roomNumbers);
+      console.log('🏠 Detected room numbers:', roomNumbers);
+      
+      console.log('🔍 Starting bilingual status detection...');
       
       // Create room mapping structure with bilingual status detection
-      const rooms: DetectedRoom[] = roomNumbers.map(number => ({
-        number,
-        status: parseRoomStatusFromText(textInput, number)
-      }));
+      const rooms: DetectedRoom[] = roomNumbers.map(number => {
+        const status = parseRoomStatusFromText(textInput, number);
+        return { number, status };
+      });
       
-      console.log('Parsed rooms with statuses (bilingual):', rooms);
+      console.log('📊 Final parsed rooms with statuses (bilingual):');
+      rooms.forEach(room => {
+        const statusColors = {
+          'clean': '🟢 GREEN (Clean)',
+          'dirty': '🟠 ORANGE (Dirty)', 
+          'closed': '⚫ GRAY (Closed)',
+          'checkout': '🔴 RED (Checkout)',
+          'default': '🔵 BLUE (Default)'
+        };
+        console.log(`   Room ${room.number}: ${statusColors[room.status as RoomStatus] || room.status}`);
+      });
       
       setDetectedRooms(rooms);
       setShowMapping(true);
