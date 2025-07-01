@@ -122,21 +122,48 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       });
     }
     
-    // Find the room number in the text
+    // FIXED: Improved text segmentation to isolate each room's data
     const roomIndex = text.toLowerCase().indexOf(roomNumber.toLowerCase());
     if (roomIndex === -1) {
       console.log(`❌ Room ${roomNumber}: Not found in text`);
       return 'default';
     }
 
-    // Extract a focused segment starting from the room number
-    const segmentStart = roomIndex;
-    const segmentEnd = Math.min(text.length, roomIndex + 150); // Look ahead 150 characters
-    const segment = text.substring(segmentStart, segmentEnd);
+    // FIXED: Find the boundaries of this room's segment more precisely
+    // Look for the next room number to establish the end boundary
+    const allRoomNumbers = ['101', '102', '103', '104', '105', '106', '107', '108',
+                           '201', '202', '203', '204', '205', '206', '207', '208',
+                           '301', '302', '303', '304', '305', '306', '307', '308',
+                           '401', '402', '403', '404', '405', '406', '407', '408',
+                           '501', '502', '503', '504', '505', '506', '507', '508'];
     
-    console.log('📄 Text segment for analysis:', segment.trim());
+    const currentRoomIndex = allRoomNumbers.indexOf(roomNumber);
+    let segmentEnd = text.length;
     
-    // More precise regex patterns that look for the FIRST status combination after the room number
+    // Find the next room number after the current one to set boundary
+    for (let i = currentRoomIndex + 1; i < allRoomNumbers.length; i++) {
+      const nextRoomIndex = text.toLowerCase().indexOf(allRoomNumbers[i].toLowerCase(), roomIndex + roomNumber.length);
+      if (nextRoomIndex !== -1) {
+        segmentEnd = nextRoomIndex;
+        break;
+      }
+    }
+    
+    // Extract ONLY this room's segment
+    const segment = text.substring(roomIndex, segmentEnd);
+    
+    console.log('📄 FIXED - Isolated segment for room', roomNumber + ':', segment.trim());
+    
+    // Special debugging for Room 202
+    if (roomNumber === '202') {
+      console.log('🐛 ROOM 202 FIXED SEGMENT:');
+      console.log('   Segment length:', segment.length);
+      console.log('   Segment content:', segment.trim());
+      console.log('   Contains "kirliboş"?', segment.toLowerCase().includes('kirliboş'));
+      console.log('   Contains "temizdolu"?', segment.toLowerCase().includes('temizdolu'));
+    }
+    
+    // More precise regex patterns that work on the isolated segment
     const patterns = [
       // Primary pattern: room number + room type + status combination (immediate match)
       new RegExp(`^${roomNumber}\\s+[\\w\\s]*?\\s+(temizdolu|temizboş|temizbo[sš]|kirlidolu|kirliboş|kirliboš|kapalıdolu|kapalıboş|kapalibo[sš])(?=\\s|$)`, 'i'),
@@ -149,7 +176,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
     let match = null;
     let patternUsed = 'none';
     
-    // Try patterns in order of precision on the focused segment
+    // Try patterns in order of precision on the ISOLATED segment
     for (let i = 0; i < patterns.length; i++) {
       match = segment.match(patterns[i]);
       if (match) {
@@ -173,13 +200,13 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
         detectedCombination = match[1]?.toLowerCase() || '';
       }
       
-      console.log('📄 Found text segment:', match[0]);
-      console.log('🎯 Detected status combination:', detectedCombination);
+      console.log('📄 FIXED - Found text segment:', match[0]);
+      console.log('🎯 FIXED - Detected status combination:', detectedCombination);
       console.log('🔧 Pattern used:', patternUsed);
       
       // Special debugging for Room 202
       if (roomNumber === '202') {
-        console.log('🐛 ROOM 202 MATCH DETAILS:');
+        console.log('🐛 ROOM 202 FIXED MATCH DETAILS:');
         console.log('   Full match:', match[0]);
         console.log('   Detected combination:', detectedCombination);
         console.log('   Match groups:', match);
@@ -202,7 +229,7 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
           
           // Special debugging for Room 202
           if (roomNumber === '202') {
-            console.log('🐛 ROOM 202 OCCUPANCY MAPPING:');
+            console.log('🐛 ROOM 202 FIXED OCCUPANCY MAPPING:');
             console.log('   Combination found:', combination);
             console.log('   Includes "boş"?', combination.toLowerCase().includes('boş'));
             console.log('   Includes "bos"?', combination.toLowerCase().includes('bos'));
@@ -224,31 +251,31 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
       };
       
       const statusColor = statusToColor[detectedStatus] || '🔵 BLUE';
-      console.log('🎨 Mapped to color:', statusColor, `+ ${personIcon} ${occupancyStatus}`);
+      console.log('🎨 FIXED - Mapped to color:', statusColor, `+ ${personIcon} ${occupancyStatus}`);
       console.log('---');
       
       return detectedStatus;
     }
     
     // Enhanced fallback with better logging
-    console.log(`❌ Room ${roomNumber}: No pattern match found`);
-    console.log('📝 Segment analyzed:', segment.trim());
+    console.log(`❌ Room ${roomNumber}: No pattern match found in ISOLATED segment`);
+    console.log('📝 ISOLATED Segment analyzed:', segment.trim());
     
-    // Individual word matching as final fallback on the focused segment
+    // Individual word matching as final fallback on the ISOLATED segment
     const segmentLower = segment.toLowerCase();
     
     if (segmentLower.includes('temiz')) {
-      console.log('🔄 Fallback: Found "temiz" - mapping to 🟢 GREEN (Clean)');
+      console.log('🔄 Fallback: Found "temiz" in isolated segment - mapping to 🟢 GREEN (Clean)');
       return 'clean';
     } else if (segmentLower.includes('kirli')) {
-      console.log('🔄 Fallback: Found "kirli" - mapping to 🟠 ORANGE (Dirty)');
+      console.log('🔄 Fallback: Found "kirli" in isolated segment - mapping to 🟠 ORANGE (Dirty)');
       return 'dirty';
     } else if (segmentLower.includes('kapalı') || segmentLower.includes('kapali')) {
-      console.log('🔄 Fallback: Found "kapalı/kapali" - mapping to ⚫ GRAY (Closed)');
+      console.log('🔄 Fallback: Found "kapalı/kapali" in isolated segment - mapping to ⚫ GRAY (Closed)');
       return 'closed';
     }
     
-    console.log('⚠️ FINAL FALLBACK: No pattern matched for room', roomNumber);
+    console.log('⚠️ FINAL FALLBACK: No pattern matched for room', roomNumber, 'in isolated segment');
     console.log('🔵 Defaulting to BLUE (Default) status');
     console.log('---');
     
