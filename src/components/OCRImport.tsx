@@ -98,146 +98,89 @@ export const OCRImport = ({ onClose, isOpen, onRoomStatusUpdate }: OCRImportProp
   const parseRoomStatusFromText = (text: string, roomNumber: string): RoomStatus => {
     console.log('Processing room:', roomNumber);
     
-    // Find all occurrences of the room number in the text
-    const textLines = text.split('\n');
-    let roomLineIndex = -1;
-    let roomLine = '';
-    
-    // Find the line containing the room number
-    for (let i = 0; i < textLines.length; i++) {
-      if (textLines[i].includes(roomNumber)) {
-        roomLineIndex = i;
-        roomLine = textLines[i];
-        break;
-      }
-    }
-    
-    if (roomLineIndex === -1) {
-      console.log(`❌ Room ${roomNumber}: Not found in text`);
-      console.log('Mapped to color: BLUE (Default), Occupied: Unknown');
-      return 'default';
-    }
-    
-    // Extend context to include more lines after the room number for better extraction
-    const contextLines = textLines.slice(roomLineIndex, Math.min(roomLineIndex + 5, textLines.length));
-    const roomContext = contextLines.join(' ').toLowerCase();
-    
-    // Also check the previous and next lines for status words that might be separated
-    const extendedContextLines = textLines.slice(
-      Math.max(0, roomLineIndex - 1), 
-      Math.min(roomLineIndex + 6, textLines.length)
+    // Create a precise regex to find the room number and capture what comes immediately after it
+    // Pattern: room number + optional spaces + room type words + status combination
+    const roomPattern = new RegExp(
+      `${roomNumber}\\s+[\\w\\s]*?\\s+(temizdolu|temizboş|temizbo[sş]|kirlidolu|kirliboş|kirliboş|kapalıdolu|kapalıboş|kapalibo[sş]|cleanovailable|cleanoccupied|cleanvacant|dirtyavailable|dirtyoccupied|dirtyvacant|closedavailable|closedoccupied|closedvacant|cleanavailable|dirtyoccupied)`,
+      'i'
     );
-    const extendedContext = extendedContextLines.join(' ').toLowerCase();
     
-    console.log('Found text segment:', roomContext);
-    console.log('Extended text segment:', extendedContext);
+    const match = text.match(roomPattern);
     
-    let detectedStatus: RoomStatus = 'default';
-    let detectedStatusCombo = 'none';
-    let isOccupied = 'Unknown';
-    
-    // First, check for exact concatenated combinations (case-insensitive) in extended context
-    for (const [combination, status] of Object.entries(CONCATENATED_STATUS_MAPPINGS)) {
-      if (extendedContext.includes(combination.toLowerCase())) {
-        detectedStatus = status;
-        detectedStatusCombo = combination;
-        
-        // Determine occupancy from the combination
-        if (combination.toLowerCase().includes('boş') || combination.toLowerCase().includes('bos') || 
-            combination.toLowerCase().includes('available') || combination.toLowerCase().includes('vacant')) {
-          isOccupied = 'Vacant';
-        } else if (combination.toLowerCase().includes('dolu') || combination.toLowerCase().includes('occupied')) {
-          isOccupied = 'Occupied';
+    if (match) {
+      const detectedCombination = match[1].toLowerCase();
+      console.log('Found text segment:', match[0]);
+      console.log('Detected status combination:', detectedCombination);
+      
+      // Map the detected combination to room status
+      let detectedStatus: RoomStatus = 'default';
+      let statusColor = 'BLUE';
+      let isOccupied = 'Unknown';
+      
+      // Check concatenated combinations first
+      for (const [combination, status] of Object.entries(CONCATENATED_STATUS_MAPPINGS)) {
+        if (detectedCombination === combination.toLowerCase()) {
+          detectedStatus = status;
+          
+          // Determine occupancy from the combination
+          if (combination.toLowerCase().includes('boş') || combination.toLowerCase().includes('bos') || 
+              combination.toLowerCase().includes('available') || combination.toLowerCase().includes('vacant')) {
+            isOccupied = 'Vacant';
+          } else if (combination.toLowerCase().includes('dolu') || combination.toLowerCase().includes('occupied')) {
+            isOccupied = 'Occupied';
+          }
+          
+          break;
         }
-        
-        console.log('Detected status combination:', detectedStatusCombo);
-        break;
-      }
-    }
-    
-    // If no concatenated combination found, check individual words in extended context
-    if (detectedStatusCombo === 'none') {
-      console.log('No concatenated combination found, checking individual words...');
-      
-      // Turkish status words (prioritized for better detection)
-      if (extendedContext.includes('temiz')) {
-        detectedStatus = 'clean';
-        detectedStatusCombo = 'temiz (Turkish individual)';
-      } else if (extendedContext.includes('kirli')) {
-        detectedStatus = 'dirty';
-        detectedStatusCombo = 'kirli (Turkish individual)';
-      } else if (extendedContext.includes('kapalı') || extendedContext.includes('kapali')) {
-        detectedStatus = 'closed';
-        detectedStatusCombo = 'kapalı/kapali (Turkish individual)';
-      } else if (extendedContext.includes('dolu')) {
-        detectedStatus = 'checkout'; // Map 'Dolu' (Occupied) to checkout for now
-        detectedStatusCombo = 'dolu (Turkish individual)';
-        isOccupied = 'Occupied';
-      } else if (extendedContext.includes('boş') || extendedContext.includes('bos')) {
-        detectedStatus = 'default'; // Map 'Boş' (Vacant) to default
-        detectedStatusCombo = 'boş/bos (Turkish individual)';
-        isOccupied = 'Vacant';
-      }
-      // English status words
-      else if (extendedContext.includes('clean') && !extendedContext.includes('unclean')) {
-        detectedStatus = 'clean';
-        detectedStatusCombo = 'clean (English individual)';
-      } else if (extendedContext.includes('dirty')) {
-        detectedStatus = 'dirty';
-        detectedStatusCombo = 'dirty (English individual)';
-      } else if (extendedContext.includes('closed')) {
-        detectedStatus = 'closed';
-        detectedStatusCombo = 'closed (English individual)';
-      } else if (extendedContext.includes('occupied')) {
-        detectedStatus = 'checkout'; // Map 'Occupied' to checkout for now
-        detectedStatusCombo = 'occupied (English individual)';
-        isOccupied = 'Occupied';
-      } else if (extendedContext.includes('available') || extendedContext.includes('vacant')) {
-        detectedStatus = 'default'; // Map 'Available/Vacant' to default
-        detectedStatusCombo = 'available/vacant (English individual)';
-        isOccupied = 'Vacant';
-      }
-      // Special markers (works for both languages)
-      else if (extendedContext.includes(' c ') || extendedContext.includes('checkout')) {
-        detectedStatus = 'checkout';
-        detectedStatusCombo = 'checkout marker';
-      } else if (extendedContext.includes(' b ') || extendedContext.includes('daily clean')) {
-        detectedStatus = 'dirty';
-        detectedStatusCombo = 'daily clean marker';
       }
       
-      console.log('Detected status combination:', detectedStatusCombo);
+      // Map status to color for logging
+      const statusToColor = {
+        'clean': 'GREEN',
+        'dirty': 'ORANGE', 
+        'closed': 'GRAY',
+        'checkout': 'RED',
+        'default': 'BLUE'
+      };
+      
+      statusColor = statusToColor[detectedStatus] || 'BLUE';
+      console.log('Mapped to color:', statusColor, 'Occupied:', isOccupied);
+      console.log('---');
+      
+      return detectedStatus;
     }
     
-    // Map status to color name for logging
-    const statusToColor = {
-      'clean': 'GREEN',
-      'dirty': 'ORANGE', 
-      'closed': 'GRAY',
-      'checkout': 'RED',
-      'default': 'BLUE'
-    };
+    // Fallback: If no precise match found, try the old method but with better logging
+    console.log(`❌ Room ${roomNumber}: No precise pattern match found`);
     
-    const color = statusToColor[detectedStatus] || 'BLUE';
-    console.log('Mapped to color:', color, 'Occupied:', isOccupied);
-    
-    // If no pattern matched, log the fallback with more details
-    if (detectedStatusCombo === 'none') {
-      console.log('⚠️ FALLBACK: No pattern matched for room', roomNumber);
-      console.log('Text found around room:', extendedContext.substring(0, 150));
-      console.log('Available status words in text:', {
-        hasTemiz: extendedContext.includes('temiz'),
-        hasKirli: extendedContext.includes('kirli'),
-        hasKapali: extendedContext.includes('kapalı') || extendedContext.includes('kapali'),
-        hasDolu: extendedContext.includes('dolu'),
-        hasBos: extendedContext.includes('boş') || extendedContext.includes('bos')
-      });
-      console.log('Defaulting to BLUE (Default) status');
+    // Try to find the room in the text and get some context around it
+    const roomIndex = text.toLowerCase().indexOf(roomNumber);
+    if (roomIndex !== -1) {
+      const contextStart = Math.max(0, roomIndex - 20);
+      const contextEnd = Math.min(text.length, roomIndex + 100);
+      const roomContext = text.substring(contextStart, contextEnd);
+      console.log('Context around room:', roomContext);
+      
+      // Try individual word matching as fallback
+      const contextLower = roomContext.toLowerCase();
+      
+      if (contextLower.includes('temiz')) {
+        console.log('Fallback: Found "temiz" - mapping to GREEN (Clean)');
+        return 'clean';
+      } else if (contextLower.includes('kirli')) {
+        console.log('Fallback: Found "kirli" - mapping to ORANGE (Dirty)');
+        return 'dirty';
+      } else if (contextLower.includes('kapalı') || contextLower.includes('kapali')) {
+        console.log('Fallback: Found "kapalı/kapali" - mapping to GRAY (Closed)');
+        return 'closed';
+      }
     }
     
+    console.log('⚠️ FALLBACK: No pattern matched for room', roomNumber);
+    console.log('Defaulting to BLUE (Default) status');
     console.log('---');
     
-    return detectedStatus;
+    return 'default';
   };
 
   const parseRoomStatus = (text: string, roomNumber: string): RoomStatus => {
