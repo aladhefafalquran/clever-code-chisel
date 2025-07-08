@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
-// import { ChatSystem } from '@/components/ChatSystem'; // TEMPORARILY DISABLED
+import { SimpleChatSystem } from '@/components/SimpleChatSystem';
 import { TaskModal } from '@/components/TaskModal';
 import { PasswordDialog } from '@/components/PasswordDialog';
 import { useRoomStore } from '@/hooks/useRoomStore';
@@ -28,9 +27,10 @@ const Index = () => {
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
   const { performDailyReset } = useDailyReset();
 
+  // Debug logging
   useEffect(() => {
-    initializeRooms();
-  }, [initializeRooms]);
+    console.log('Index component mounted, rooms:', rooms.length);
+  }, [rooms]);
 
   // Handle task events from ChatSystem
   useEffect(() => {
@@ -81,6 +81,7 @@ const Index = () => {
 
   // Enhanced filtering logic
   const filteredRooms = (() => {
+    console.log('Filtering rooms, total:', rooms.length, 'currentView:', currentView);
     switch (currentView) {
       case 'all':
         return rooms;
@@ -92,6 +93,8 @@ const Index = () => {
         return rooms.filter(room => room.status === currentView);
     }
   })();
+
+  console.log('Filtered rooms:', filteredRooms.length);
 
   const handleRoomSelect = (roomNumber: string, selected: boolean) => {
     if (selected) {
@@ -134,6 +137,15 @@ const Index = () => {
   const occupiedRoomsCount = rooms.filter(room => room.hasGuests).length;
   const vacantRoomsCount = rooms.filter(room => !room.hasGuests).length;
   const immediateCleaningCount = rooms.filter(room => !room.hasGuests && (room.status === 'dirty' || room.status === 'checkout')).length;
+
+  console.log('Room counts:', {
+    total: rooms.length,
+    checkout: checkoutRoomsCount,
+    dirty: dirtyRoomsCount,
+    closed: closedRoomsCount,
+    occupied: occupiedRoomsCount,
+    vacant: vacantRoomsCount
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
@@ -301,7 +313,7 @@ const Index = () => {
               className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
             >
               <Home className="w-4 h-4" />
-              All Rooms
+              All Rooms ({rooms.length})
             </Button>
             
             <Button
@@ -359,6 +371,18 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-6 sm:space-y-8">
+        {/* Debug Info */}
+        {rooms.length === 0 && (
+          <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 text-yellow-800">
+            <h3 className="font-semibold">Debug: Room Loading Issue</h3>
+            <p>No rooms found. Total rooms: {rooms.length}</p>
+            <p>Check console for initialization logs.</p>
+            <Button onClick={initializeRooms} className="mt-2">
+              Force Reinitialize Rooms
+            </Button>
+          </div>
+        )}
+
         {/* Enhanced Priority Alerts - Mobile optimized */}
         {checkoutRoomsCount > 0 && currentView !== 'checkout' && (
           <div className="glass-effect border border-red-200/60 rounded-2xl p-4 sm:p-6 shadow-soft">
@@ -429,17 +453,34 @@ const Index = () => {
 
         {/* Rooms Display */}
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-3 sm:p-6 shadow-soft border border-white/20">
-          <HotelRoomsView
-            rooms={filteredRooms}
-            isAdmin={isAdmin}
-            selectedRooms={selectedRooms}
-            showSelection={showSelection}
-            roomTasks={roomTasks}
-            onRoomStatusChange={updateRoomStatus}
-            onGuestStatusChange={updateGuestStatus}
-            onRoomSelect={handleRoomSelect}
-            onAddTask={handleAddTaskToRoom}
-          />
+          {filteredRooms.length > 0 ? (
+            <HotelRoomsView
+              rooms={filteredRooms}
+              isAdmin={isAdmin}
+              selectedRooms={selectedRooms}
+              showSelection={showSelection}
+              roomTasks={roomTasks}
+              onRoomStatusChange={updateRoomStatus}
+              onGuestStatusChange={updateGuestStatus}
+              onRoomSelect={handleRoomSelect}
+              onAddTask={handleAddTaskToRoom}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Rooms Found</h3>
+              <p className="text-gray-500 mb-4">
+                {currentView === 'all' 
+                  ? 'No rooms have been initialized yet.' 
+                  : `No rooms match the "${currentView}" filter.`
+                }
+              </p>
+              {currentView === 'all' && (
+                <Button onClick={initializeRooms} variant="outline">
+                  Initialize Rooms
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -450,13 +491,10 @@ const Index = () => {
         isAdmin={isAdmin}
       />
 
-      {/* ChatSystem temporarily disabled
-      <ChatSystem
+      <SimpleChatSystem
         isOpen={showChatSystem}
         onClose={() => setShowChatSystem(false)}
-        onTaskUpdate={handleTaskUpdate}
       />
-      */}
 
       <TaskModal
         isOpen={showTaskModal}

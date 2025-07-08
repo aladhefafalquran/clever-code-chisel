@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Room, RoomStatus } from '@/types/room';
 
 const generateRooms = (): Room[] => {
@@ -20,6 +20,7 @@ const generateRooms = (): Room[] => {
     }
   }
   
+  console.log('Generated rooms:', rooms.length, rooms);
   return rooms;
 };
 
@@ -42,7 +43,9 @@ export const useRoomStore = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
 
   const initializeRooms = useCallback(() => {
+    console.log('Initializing rooms...');
     const savedRooms = localStorage.getItem('hotelRooms');
+    
     if (savedRooms) {
       try {
         const parsedRooms = JSON.parse(savedRooms).map((room: any) => ({
@@ -50,21 +53,34 @@ export const useRoomStore = () => {
           lastCleaned: room.lastCleaned ? new Date(room.lastCleaned) : null,
           lastUpdated: new Date(room.lastUpdated)
         }));
-        setRooms(checkOverdueRooms(parsedRooms));
+        console.log('Loaded rooms from localStorage:', parsedRooms.length);
+        const checkedRooms = checkOverdueRooms(parsedRooms);
+        setRooms(checkedRooms);
       } catch (error) {
         console.error('Error parsing saved rooms:', error);
-        setRooms(generateRooms());
+        const newRooms = generateRooms();
+        setRooms(newRooms);
+        localStorage.setItem('hotelRooms', JSON.stringify(newRooms));
       }
     } else {
-      setRooms(generateRooms());
+      console.log('No saved rooms found, generating new ones');
+      const newRooms = generateRooms();
+      setRooms(newRooms);
+      localStorage.setItem('hotelRooms', JSON.stringify(newRooms));
     }
   }, []);
+
+  // Auto-initialize rooms on mount
+  useEffect(() => {
+    initializeRooms();
+  }, [initializeRooms]);
 
   const saveRooms = useCallback((updatedRooms: Room[]) => {
     localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
   }, []);
 
   const updateRoomStatus = useCallback((roomNumber: string, status: RoomStatus) => {
+    console.log('Updating room status:', roomNumber, status);
     setRooms(prevRooms => {
       const updatedRooms = prevRooms.map(room => {
         if (room.number === roomNumber) {
@@ -86,6 +102,7 @@ export const useRoomStore = () => {
   }, [saveRooms]);
 
   const updateGuestStatus = useCallback((roomNumber: string, hasGuests: boolean) => {
+    console.log('Updating guest status:', roomNumber, hasGuests);
     setRooms(prevRooms => {
       const updatedRooms = prevRooms.map(room => {
         if (room.number === roomNumber) {
@@ -102,6 +119,8 @@ export const useRoomStore = () => {
       return updatedRooms;
     });
   }, [saveRooms]);
+
+  console.log('Current rooms in store:', rooms.length);
 
   return {
     rooms,
