@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { AdminLogin } from '@/components/AdminLogin';
@@ -8,8 +7,10 @@ import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
 import { ChatSystem } from '@/components/ChatSystem';
 import { TaskModal } from '@/components/TaskModal';
 import { useRoomStore } from '@/hooks/useRoomStore';
+import { ArchiveSystem } from '@/components/ArchiveSystem';
+import { useDailyReset } from '@/hooks/useDailyReset';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User } from 'lucide-react';
+import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
@@ -22,7 +23,9 @@ const Index = () => {
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [showSelection, setShowSelection] = useState(false);
   const [roomTasks, setRoomTasks] = useState<Record<string, boolean>>({});
+  const [showArchiveSystem, setShowArchiveSystem] = useState(false);
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
+  const { manualReset } = useDailyReset();
 
   useEffect(() => {
     initializeRooms();
@@ -202,6 +205,17 @@ const Index = () => {
               </Button>
             </div>
 
+            {/* Archive System */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowArchiveSystem(true)}
+              className="flex items-center gap-2"
+            >
+              <Archive className="w-4 h-4" />
+              Archive
+            </Button>
+
             {/* Communication System */}
             <Button
               variant="outline"
@@ -216,6 +230,15 @@ const Index = () => {
             {/* Admin Controls */}
             {isAdmin ? (
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={manualReset}
+                  className="flex items-center gap-2 text-orange-600"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Manual Reset
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -322,6 +345,13 @@ const Index = () => {
           onClose={() => setShowLoginModal(false)}
         />
       )}
+
+      {/* Archive System */}
+      <ArchiveSystem
+        isOpen={showArchiveSystem}
+        onClose={() => setShowArchiveSystem(false)}
+        isAdmin={isAdmin}
+      />
 
       {/* Chat System */}
       <ChatSystem

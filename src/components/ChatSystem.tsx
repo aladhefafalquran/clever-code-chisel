@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,7 +84,7 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // Add archive notification for completed tasks
   useEffect(() => {
     localStorage.setItem('hotelChatMessages', JSON.stringify(messages));
   }, [messages]);
@@ -219,6 +218,9 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
             <h2 className="text-xl font-bold">Hotel Communication & Tasks</h2>
+            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {new Date().toLocaleDateString()}
+            </span>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             ×
