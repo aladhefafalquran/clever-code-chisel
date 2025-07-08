@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
-import { AdminLogin } from '@/components/AdminLogin';
+import { AccountSelection } from '@/components/AccountSelection';
 import { AdminPanel } from '@/components/AdminPanel';
 import { FilterPanel } from '@/components/FilterPanel';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
@@ -11,12 +11,13 @@ import { PasswordDialog } from '@/components/PasswordDialog';
 import { useRoomStore } from '@/hooks/useRoomStore';
 import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
+import { useUser } from '@/hooks/useUserContext';
 import { Button } from '@/components/ui/button';
 import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { currentUser, isAdmin, logout } = useUser();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChatSystem, setShowChatSystem] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -35,6 +36,13 @@ const Index = () => {
     initializeRooms();
   }, [initializeRooms]);
 
+  // Show login modal if no user is logged in
+  useEffect(() => {
+    if (!currentUser) {
+      setShowLoginModal(true);
+    }
+  }, [currentUser]);
+
   // Handle task events from ChatSystem
   useEffect(() => {
     const handleAddTask = (event: CustomEvent) => {
@@ -47,18 +55,17 @@ const Index = () => {
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
   }, []);
 
-  const handleAdminLogin = (success: boolean) => {
-    if (success) {
-      setIsAdmin(true);
-      setShowLoginModal(false);
-    }
+  const handleAccountLogin = (userType: 'admin' | 'housekeeper', userId: string) => {
+    // This is handled by the UserProvider, just close the modal
+    setShowLoginModal(false);
   };
 
   const handleLogout = () => {
-    setIsAdmin(false);
+    logout();
     setSelectedRooms([]);
     setShowSelection(false);
     setShowChatSystem(false);
+    setShowLoginModal(true);
   };
 
   const handleTaskUpdate = (roomNumber: string, hasTask: boolean) => {
@@ -154,9 +161,19 @@ const Index = () => {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">
               Hotel Housekeeping
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground font-normal hidden sm:block">
-              Professional room management system
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs sm:text-sm text-muted-foreground font-normal hidden sm:block">
+                Professional room management system
+              </p>
+              {currentUser && (
+                <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
+                  <div className={`w-3 h-3 rounded-full ${currentUser.color}`}></div>
+                  <span className="text-xs font-medium text-blue-700">
+                    {currentUser.name}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Mobile Menu Button */}
@@ -286,11 +303,11 @@ const Index = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowLoginModal(true)}
+                    onClick={handleLogout}
                     className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
                   >
-                    <Users className="w-4 h-4" />
-                    <span className="hidden lg:inline">Admin Login</span>
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden lg:inline">Switch User</span>
                   </Button>
                 )}
               </div>
@@ -543,11 +560,15 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Admin Login Modal */}
+      {/* Account Selection Modal */}
       {showLoginModal && (
-        <AdminLogin
-          onLogin={handleAdminLogin}
-          onClose={() => setShowLoginModal(false)}
+        <AccountSelection
+          onLogin={handleAccountLogin}
+          onClose={() => {
+            if (currentUser) {
+              setShowLoginModal(false);
+            }
+          }}
         />
       )}
 
@@ -562,7 +583,6 @@ const Index = () => {
       <ChatSystem
         isOpen={showChatSystem}
         onClose={() => setShowChatSystem(false)}
-        isAdmin={isAdmin}
         onTaskUpdate={handleTaskUpdate}
       />
 

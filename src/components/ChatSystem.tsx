@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MessageCircle, Send, CheckCircle, Clock, User, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/hooks/useUserContext';
 
 interface Task {
   id: string;
@@ -14,25 +15,27 @@ interface Task {
   completed: boolean;
   completedBy?: string;
   completedAt?: Date;
+  createdBy: string;
 }
 
 interface ChatMessage {
   id: string;
   type: 'message' | 'task';
-  sender: 'admin' | 'housekeeping';
+  sender: string;
+  senderType: 'admin' | 'housekeeper';
   content: string;
   timestamp: Date;
   task?: Task;
 }
 
 interface ChatSystemProps {
-  isAdmin: boolean;
   isOpen: boolean;
   onClose: () => void;
   onTaskUpdate: (roomNumber: string, hasTask: boolean) => void;
 }
 
-export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSystemProps) => {
+export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) => {
+  const { currentUser, isAdmin } = useUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -77,12 +80,14 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
   useEffect(() => {
     const handleAddTask = (event: CustomEvent) => {
       const { roomNumber, message } = event.detail;
-      addTask(roomNumber, message);
+      if (currentUser) {
+        addTask(roomNumber, message);
+      }
     };
 
     window.addEventListener('addTask', handleAddTask as EventListener);
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
-  }, []);
+  }, [currentUser]);
 
   // Add archive notification for completed tasks
   useEffect(() => {
@@ -118,12 +123,13 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
   }, [tasks, onTaskUpdate]);
 
   const sendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
 
     const message: ChatMessage = {
       id: Date.now().toString(),
       type: 'message',
-      sender: isAdmin ? 'admin' : 'housekeeping',
+      sender: currentUser.name,
+      senderType: currentUser.type,
       content: newMessage,
       timestamp: new Date()
     };
@@ -133,18 +139,22 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
   };
 
   const addTask = (roomNumber: string, taskMessage: string) => {
+    if (!currentUser) return;
+
     const task: Task = {
       id: Date.now().toString(),
       roomNumber,
       message: taskMessage,
       timestamp: new Date(),
-      completed: false
+      completed: false,
+      createdBy: currentUser.name
     };
 
     const message: ChatMessage = {
       id: Date.now().toString(),
       type: 'task',
-      sender: 'admin',
+      sender: currentUser.name,
+      senderType: currentUser.type,
       content: `🏠 Room ${roomNumber}: ${taskMessage}`,
       timestamp: new Date(),
       task
@@ -155,15 +165,17 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
   };
 
   const completeTask = (taskId: string) => {
+    if (!currentUser) return;
+
     setTasks(prev => prev.map(task => 
       task.id === taskId 
-        ? { ...task, completed: true, completedBy: 'housekeeping', completedAt: new Date() }
+        ? { ...task, completed: true, completedBy: currentUser.name, completedAt: new Date() }
         : task
     ));
 
     setMessages(prev => prev.map(msg => 
       msg.task?.id === taskId 
-        ? { ...msg, task: { ...msg.task, completed: true, completedBy: 'housekeeping', completedAt: new Date() } }
+        ? { ...msg, task: { ...msg.task, completed: true, completedBy: currentUser.name, completedAt: new Date() } }
         : msg
     ));
 
@@ -173,7 +185,8 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
       const notification: ChatMessage = {
         id: Date.now().toString(),
         type: 'message',
-        sender: 'housekeeping',
+        sender: currentUser.name,
+        senderType: currentUser.type,
         content: `✅ Task completed for Room ${task.roomNumber}`,
         timestamp: new Date()
       };
@@ -182,6 +195,8 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
   };
 
   const undoTaskCompletion = (taskId: string) => {
+    if (!currentUser) return;
+
     setTasks(prev => prev.map(task => 
       task.id === taskId 
         ? { ...task, completed: false, completedBy: undefined, completedAt: undefined }
@@ -200,12 +215,35 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
       const notification: ChatMessage = {
         id: Date.now().toString(),
         type: 'message',
-        sender: 'housekeeping',
+        sender: currentUser.name,
+        senderType: currentUser.type,
         content: `↩️ Task reopened for Room ${task.roomNumber}`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, notification]);
     }
+  };
+
+  const getSenderColor = (sender: string): string => {
+    const colors: Record<string, string> = {
+      'Admin': 'bg-red-50 border-red-200',
+      'HK1': 'bg-blue-50 border-blue-200',
+      'HK2': 'bg-green-50 border-green-200',
+      'HK3': 'bg-purple-50 border-purple-200',
+      'HK4': 'bg-orange-50 border-orange-200'
+    };
+    return colors[sender] || 'bg-gray-50 border-gray-200';
+  };
+
+  const getSenderAvatarColor = (sender: string): string => {
+    const colors: Record<string, string> = {
+      'Admin': 'bg-red-500',
+      'HK1': 'bg-blue-500',
+      'HK2': 'bg-green-500',
+      'HK3': 'bg-purple-500',
+      'HK4': 'bg-orange-500'
+    };
+    return colors[sender] || 'bg-gray-500';
   };
 
   if (!isOpen) return null;
@@ -238,21 +276,21 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
               <div
                 key={message.id}
                 className={cn(
-                  "flex gap-3 p-3 rounded-lg",
-                  message.sender === 'admin' ? "bg-blue-50" : "bg-green-50"
+                  "flex gap-3 p-3 rounded-lg border",
+                  getSenderColor(message.sender)
                 )}
               >
                 <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold",
-                  message.sender === 'admin' ? "bg-blue-500" : "bg-green-500"
+                  "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0",
+                  getSenderAvatarColor(message.sender)
                 )}>
-                  {message.sender === 'admin' ? 'A' : 'H'}
+                  {message.sender === 'Admin' ? 'A' : message.sender.slice(-1)}
                 </div>
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">
-                      {message.sender === 'admin' ? 'Admin' : 'Housekeeping'}
+                    <span className="font-medium text-gray-900">
+                      {message.sender}
                     </span>
                     <span className="text-xs text-gray-500">
                       {message.timestamp.toLocaleTimeString()}
@@ -262,7 +300,7 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
                   <div className="text-gray-800">{message.content}</div>
                   
                   {/* Task completion checkbox */}
-                  {message.type === 'task' && message.task && !message.task.completed && !isAdmin && (
+                  {message.type === 'task' && message.task && !message.task.completed && !isAdmin && currentUser && (
                     <div className="mt-2 flex items-center gap-2">
                       <Checkbox
                         id={`task-${message.task.id}`}
@@ -286,7 +324,7 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
                           Completed by {message.task.completedBy} at {message.task.completedAt?.toLocaleTimeString()}
                         </span>
                       </div>
-                      {!isAdmin && (
+                      {!isAdmin && currentUser && (
                         <Button
                           variant="ghost"
                           size="sm"
