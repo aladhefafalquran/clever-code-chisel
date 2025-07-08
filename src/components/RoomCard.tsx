@@ -79,28 +79,31 @@ export const RoomCard = ({
     let borderClass = statusConfig.borderColor;
     
     if (workflowPriority === 'immediate') {
-      borderClass += ' border-4'; // Thicker border for immediate priority
+      borderClass += ' border-4 shadow-elevated'; // Thicker border for immediate priority
     } else if (room.hasGuests) {
-      borderClass += ' border-dashed'; // Dashed border for occupied rooms
+      borderClass += ' border-dashed border-2'; // Dashed border for occupied rooms
+    } else {
+      borderClass += ' border-2';
     }
     
     return borderClass;
   };
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <div
         className={cn(
-          "relative rounded-lg border-2 overflow-hidden transition-all duration-200",
+          "relative rounded-2xl border overflow-hidden transition-all duration-300 ease-out transform",
           getBorderStyle(),
-          isSelected && "ring-4 ring-blue-300",
-          "min-h-[120px] md:min-h-[140px] h-full"
+          isSelected && "ring-4 ring-blue-300/50 scale-105",
+          "min-h-[130px] md:min-h-[150px] h-full shadow-soft hover:shadow-elevated",
+          !showSelection && "hover:scale-102 hover:-translate-y-1"
         )}
       >
         {/* Task Indicator */}
         {hasTask && (
-          <div className="absolute top-1 left-1 z-30 bg-yellow-400 text-black rounded-full w-6 h-6 flex items-center justify-center">
-            <AlertTriangle className="w-3 h-3" />
+          <div className="absolute top-3 left-3 z-30 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-elevated animate-pulse">
+            <AlertTriangle className="w-3.5 h-3.5" />
           </div>
         )}
 
@@ -108,30 +111,30 @@ export const RoomCard = ({
         {isAdmin && (
           <button
             onClick={handleGuestToggle}
-            className="absolute top-2 right-2 z-20 p-1 h-7 w-7 rounded-md bg-black/20 hover:bg-black/40 transition-colors backdrop-blur-sm border border-white/20"
+            className="absolute top-3 right-3 z-20 p-2 h-8 w-8 rounded-xl bg-black/20 hover:bg-black/40 transition-all duration-300 backdrop-blur-sm border border-white/20 hover:scale-110"
           >
             {room.hasGuests ? (
-              <Users className="w-4 h-4 text-white" />
+              <Users className="w-4 h-4 text-white drop-shadow-sm" />
             ) : (
-              <User className="w-4 h-4 text-white/70" />
+              <User className="w-4 h-4 text-white/80 drop-shadow-sm" />
             )}
           </button>
         )}
 
         {/* Selection Checkbox - Only shown when showSelection is true */}
         {showSelection && (
-          <div className="absolute top-2 left-2 z-10">
+          <div className="absolute top-3 left-3 z-10">
             <Checkbox
               checked={isSelected}
               onCheckedChange={handleCheckboxChange}
-              className="bg-white border-2"
+              className="bg-white/90 border-2 shadow-soft backdrop-blur-sm h-5 w-5 rounded-lg"
             />
           </div>
         )}
 
         {/* Workflow Priority Indicator */}
         {workflowPriority === 'immediate' && (
-          <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-black text-xs px-2 py-1 rounded-full font-bold">
+          <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-elevated animate-bounce">
             PRIORITY
           </div>
         )}
@@ -141,28 +144,33 @@ export const RoomCard = ({
           <button
             onClick={handleCardClick}
             className={cn(
-              "w-full h-full min-h-[120px] md:min-h-[140px] p-4 flex flex-col items-center justify-center text-white font-bold text-base transition-opacity duration-200",
+              "w-full h-full min-h-[130px] md:min-h-[150px] p-6 flex flex-col items-center justify-center text-white font-bold text-base transition-all duration-300",
               statusConfig.bgColor,
-              "hover:opacity-90 active:opacity-80"
+              "hover:brightness-110 active:scale-95 relative overflow-hidden"
             )}
           >
-            <div className="text-2xl md:text-3xl font-bold mb-2">
-              {room.number}
-            </div>
+            {/* Background Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
             
-            {/* Enhanced Occupancy Display */}
-            <div className="flex items-center gap-2 text-sm opacity-95">
-              {room.hasGuests ? (
-                <>
-                  <Users className="w-4 h-4" />
-                  <span className="font-medium">Occupied</span>
-                </>
-              ) : (
-                <>
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">Vacant</span>
-                </>
-              )}
+            <div className="relative z-10 text-center">
+              <div className="text-3xl md:text-4xl font-bold mb-3 drop-shadow-lg tracking-wide">
+                {room.number}
+              </div>
+              
+              {/* Enhanced Occupancy Display */}
+              <div className="flex items-center justify-center gap-2 text-sm opacity-95 bg-black/20 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                {room.hasGuests ? (
+                  <>
+                    <Users className="w-4 h-4" />
+                    <span className="font-semibold">Occupied</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-4 h-4" />
+                    <span className="font-semibold">Vacant</span>
+                  </>
+                )}
+              </div>
             </div>
           </button>
         ) : (
@@ -170,40 +178,45 @@ export const RoomCard = ({
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "w-full h-full min-h-[120px] md:min-h-[140px] p-4 flex flex-col items-center justify-center text-white font-bold text-base transition-opacity duration-200",
+                  "w-full h-full min-h-[130px] md:min-h-[150px] p-6 flex flex-col items-center justify-center text-white font-bold text-base transition-all duration-300",
                   statusConfig.bgColor,
-                  "hover:opacity-90 active:opacity-80"
+                  "hover:brightness-110 active:scale-95 relative overflow-hidden group-hover:shadow-2xl"
                 )}
               >
-                <div className="text-2xl md:text-3xl font-bold mb-2">
-                  {room.number}
-                </div>
+                {/* Background Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
                 
-                {/* Enhanced Occupancy Display */}
-                <div className="flex items-center gap-2 text-sm opacity-95">
-                  {room.hasGuests ? (
-                    <>
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">Occupied</span>
-                    </>
-                  ) : (
-                    <>
-                      <User className="w-4 h-4" />
-                      <span className="font-medium">Vacant</span>
-                    </>
-                  )}
+                <div className="relative z-10 text-center">
+                  <div className="text-3xl md:text-4xl font-bold mb-3 drop-shadow-lg tracking-wide">
+                    {room.number}
+                  </div>
+                  
+                  {/* Enhanced Occupancy Display */}
+                  <div className="flex items-center justify-center gap-2 text-sm opacity-95 bg-black/20 rounded-full px-3 py-1.5 backdrop-blur-sm transition-all duration-300 group-hover:bg-black/30">
+                    {room.hasGuests ? (
+                      <>
+                        <Users className="w-4 h-4" />
+                        <span className="font-semibold">Occupied</span>
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-4 h-4" />
+                        <span className="font-semibold">Vacant</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </button>
             </DropdownMenuTrigger>
             
-            <DropdownMenuContent className="w-48 bg-white border shadow-lg z-50">
+            <DropdownMenuContent className="w-56 bg-white/95 backdrop-blur-sm border border-white/20 shadow-elevated z-50 rounded-xl">
               {/* Guest option - only show for admins */}
               {isAdmin && (
                 <DropdownMenuItem
                   onClick={handleGuestStatusToggle}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/80 cursor-pointer rounded-lg m-1 transition-all duration-200"
                 >
-                  <div className="w-4 h-4 flex items-center justify-center">
+                  <div className="w-5 h-5 flex items-center justify-center">
                     {room.hasGuests ? (
                       <Users className="w-4 h-4 text-green-600" />
                     ) : (
@@ -220,7 +233,7 @@ export const RoomCard = ({
               {isAdmin && (
                 <DropdownMenuItem
                   onClick={handleAddTask}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50/80 cursor-pointer rounded-lg m-1 transition-all duration-200"
                 >
                   <MessageSquare className="w-4 h-4 text-blue-600" />
                   <span className="font-medium">Add Task</span>
@@ -232,11 +245,11 @@ export const RoomCard = ({
                 <DropdownMenuItem
                   key={status}
                   onClick={() => handleStatusSelect(status)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/80 cursor-pointer rounded-lg m-1 transition-all duration-200"
                 >
                   <div
                     className={cn(
-                      "w-4 h-4 rounded-full",
+                      "w-4 h-4 rounded-full shadow-soft",
                       ROOM_STATUS_CONFIG[status].bgColor
                     )}
                   />

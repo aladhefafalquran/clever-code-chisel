@@ -144,22 +144,27 @@ const Index = () => {
   const immediateCleaningCount = rooms.filter(room => !room.hasGuests && (room.status === 'dirty' || room.status === 'checkout')).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b px-4 py-3">
+      <header className="bg-white/95 backdrop-blur-sm shadow-soft border-b border-border/60 px-6 py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Hotel Housekeeping
-          </h1>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">
+              Hotel Housekeeping
+            </h1>
+            <p className="text-sm text-muted-foreground font-normal">
+              Professional room management system
+            </p>
+          </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Enhanced View Toggle with Occupancy Filters */}
-            <div className="flex bg-gray-100 rounded-lg p-1 flex-wrap">
+            <div className="flex bg-muted/50 rounded-xl p-1.5 gap-1 flex-wrap shadow-soft">
               <Button
                 variant={currentView === 'all' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('all')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <Home className="w-4 h-4" />
                 All Rooms
@@ -170,19 +175,19 @@ const Index = () => {
                 variant={currentView === 'checkout' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('checkout')}
-                className="flex items-center gap-2 text-red-600"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <AlertCircle className="w-4 h-4" />
-                Checkout ({checkoutRoomsCount})
+                <span className="hidden sm:inline">Checkout</span> ({checkoutRoomsCount})
               </Button>
               <Button
                 variant={currentView === 'dirty' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('dirty')}
-                className="flex items-center gap-2 text-orange-600"
+                className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <Wrench className="w-4 h-4" />
-                Dirty ({dirtyRoomsCount})
+                <span className="hidden sm:inline">Dirty</span> ({dirtyRoomsCount})
               </Button>
               
               {/* Occupancy Filters */}
@@ -190,106 +195,114 @@ const Index = () => {
                 variant={currentView === 'occupied' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('occupied')}
-                className="flex items-center gap-2 text-blue-600"
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <Users className="w-4 h-4" />
-                Occupied ({occupiedRoomsCount})
+                <span className="hidden sm:inline">Occupied</span> ({occupiedRoomsCount})
               </Button>
               <Button
                 variant={currentView === 'vacant' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('vacant')}
-                className="flex items-center gap-2 text-green-600"
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <User className="w-4 h-4" />
-                Vacant ({vacantRoomsCount})
+                <span className="hidden sm:inline">Vacant</span> ({vacantRoomsCount})
               </Button>
               
               <Button
                 variant={currentView === 'closed' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setCurrentView('closed')}
-                className="flex items-center gap-2 text-gray-600"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth hover:scale-105"
               >
                 <DoorClosed className="w-4 h-4" />
-                Closed ({closedRoomsCount})
+                <span className="hidden sm:inline">Closed</span> ({closedRoomsCount})
               </Button>
             </div>
 
-            {/* Archive System */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowArchiveSystem(true)}
-              className="flex items-center gap-2"
-            >
-              <Archive className="w-4 h-4" />
-              Archive
-            </Button>
-
-            {/* Communication System */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowChatSystem(true)}
-              className="flex items-center gap-2"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Chat & Tasks
-            </Button>
-
-            {/* Admin Controls */}
-            {isAdmin ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleManualResetRequest}
-                  className="flex items-center gap-2 text-orange-600"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Manual Reset
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </Button>
-              </div>
-            ) : (
+            {/* System Actions */}
+            <div className="flex items-center gap-3">
+              {/* Archive System */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowLoginModal(true)}
-                className="flex items-center gap-2"
+                onClick={() => setShowArchiveSystem(true)}
+                className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
               >
-                <Users className="w-4 h-4" />
-                Admin Login
+                <Archive className="w-4 h-4" />
+                <span className="hidden md:inline">Archive</span>
               </Button>
-            )}
+
+              {/* Communication System */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowChatSystem(true)}
+                className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="hidden md:inline">Chat & Tasks</span>
+              </Button>
+
+              {/* Admin Controls */}
+              {isAdmin ? (
+                <div className="flex items-center gap-3 pl-3 border-l border-border/60">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualResetRequest}
+                    className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth hover:scale-105"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="hidden lg:inline">Manual Reset</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden lg:inline">Logout</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="hidden md:inline">Admin Login</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Enhanced Priority Alerts */}
         {checkoutRoomsCount > 0 && currentView !== 'checkout' && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="w-5 h-5" />
-              <span className="font-medium">
-                {checkoutRoomsCount} checkout room{checkoutRoomsCount !== 1 ? 's' : ''} need{checkoutRoomsCount === 1 ? 's' : ''} immediate attention!
-              </span>
+          <div className="glass-effect border border-red-200/60 rounded-2xl p-6 shadow-soft">
+            <div className="flex items-center gap-3 text-red-800">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Urgent Attention Required</h3>
+                <p className="text-red-700/80 mt-1">
+                  {checkoutRoomsCount} checkout room{checkoutRoomsCount !== 1 ? 's' : ''} need{checkoutRoomsCount === 1 ? 's' : ''} immediate cleaning
+                </p>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentView('checkout')}
-                className="ml-auto text-red-600 border-red-300 hover:bg-red-100"
+                className="text-red-600 border-red-300 hover:bg-red-100 font-medium transition-smooth hover:scale-105"
               >
                 View Checkout Rooms
               </Button>
@@ -299,17 +312,22 @@ const Index = () => {
 
         {/* Immediate Cleaning Priority Alert */}
         {immediateCleaningCount > 0 && currentView !== 'vacant' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-yellow-800">
-              <User className="w-5 h-5" />
-              <span className="font-medium">
-                {immediateCleaningCount} vacant room{immediateCleaningCount !== 1 ? 's' : ''} ready for immediate cleaning!
-              </span>
+          <div className="glass-effect border border-yellow-200/60 rounded-2xl p-6 shadow-soft">
+            <div className="flex items-center gap-3 text-yellow-800">
+              <div className="p-2 bg-yellow-100 rounded-full">
+                <User className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Ready for Cleaning</h3>
+                <p className="text-yellow-700/80 mt-1">
+                  {immediateCleaningCount} vacant room{immediateCleaningCount !== 1 ? 's' : ''} ready for immediate cleaning
+                </p>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentView('vacant')}
-                className="ml-auto text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-medium transition-smooth hover:scale-105"
               >
                 View Vacant Rooms
               </Button>
@@ -336,17 +354,19 @@ const Index = () => {
         />
 
         {/* Rooms Display */}
-        <HotelRoomsView
-          rooms={filteredRooms}
-          isAdmin={isAdmin}
-          selectedRooms={selectedRooms}
-          showSelection={showSelection}
-          roomTasks={roomTasks}
-          onRoomStatusChange={updateRoomStatus}
-          onGuestStatusChange={updateGuestStatus}
-          onRoomSelect={handleRoomSelect}
-          onAddTask={handleAddTaskToRoom}
-        />
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-soft border border-white/20">
+          <HotelRoomsView
+            rooms={filteredRooms}
+            isAdmin={isAdmin}
+            selectedRooms={selectedRooms}
+            showSelection={showSelection}
+            roomTasks={roomTasks}
+            onRoomStatusChange={updateRoomStatus}
+            onGuestStatusChange={updateGuestStatus}
+            onRoomSelect={handleRoomSelect}
+            onAddTask={handleAddTaskToRoom}
+          />
+        </div>
       </div>
 
       {/* Admin Login Modal */}
