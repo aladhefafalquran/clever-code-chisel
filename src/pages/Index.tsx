@@ -136,7 +136,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      {/* Mobile-Optimized Header */}
+      {/* Main Header */}
       <header className="bg-white/95 backdrop-blur-sm shadow-soft border-b border-border/60 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="space-y-1">
@@ -172,69 +172,6 @@ const Index = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-4">
-              {/* Enhanced View Toggle with Occupancy Filters */}
-              <div className="flex bg-muted/50 rounded-xl p-1.5 gap-1 flex-wrap shadow-soft">
-                <Button
-                  variant={currentView === 'all' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('all')}
-                  className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <Home className="w-4 h-4" />
-                  All Rooms
-                </Button>
-                
-                {/* Priority Filters */}
-                <Button
-                  variant={currentView === 'checkout' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('checkout')}
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="hidden lg:inline">Checkout</span> ({checkoutRoomsCount})
-                </Button>
-                <Button
-                  variant={currentView === 'dirty' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('dirty')}
-                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <Wrench className="w-4 h-4" />
-                  <span className="hidden lg:inline">Dirty</span> ({dirtyRoomsCount})
-                </Button>
-                
-                {/* Occupancy Filters */}
-                <Button
-                  variant={currentView === 'occupied' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('occupied')}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <Users className="w-4 h-4" />
-                  <span className="hidden lg:inline">Occupied</span> ({occupiedRoomsCount})
-                </Button>
-                <Button
-                  variant={currentView === 'vacant' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('vacant')}
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="hidden lg:inline">Vacant</span> ({vacantRoomsCount})
-                </Button>
-                
-                <Button
-                  variant={currentView === 'closed' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setCurrentView('closed')}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
-                >
-                  <DoorClosed className="w-4 h-4" />
-                  <span className="hidden lg:inline">Closed</span> ({closedRoomsCount})
-                </Button>
-              </div>
-
               {/* System Actions */}
               <div className="flex items-center gap-3">
                 {/* Archive System */}
@@ -292,89 +229,8 @@ const Index = () => {
         {/* Mobile Menu Dropdown */}
         {showMobileMenu && (
           <div className="md:hidden mt-4 p-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-elevated border border-white/20">
-            {/* Mobile View Toggle */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <Button
-                variant={currentView === 'all' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('all');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <Home className="w-4 h-4" />
-                All Rooms
-              </Button>
-              
-              <Button
-                variant={currentView === 'checkout' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('checkout');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Checkout ({checkoutRoomsCount})
-              </Button>
-
-              <Button
-                variant={currentView === 'dirty' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('dirty');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <Wrench className="w-4 h-4" />
-                Dirty ({dirtyRoomsCount})
-              </Button>
-              
-              <Button
-                variant={currentView === 'occupied' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('occupied');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <Users className="w-4 h-4" />
-                Occupied ({occupiedRoomsCount})
-              </Button>
-
-              <Button
-                variant={currentView === 'vacant' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('vacant');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <User className="w-4 h-4" />
-                Vacant ({vacantRoomsCount})
-              </Button>
-              
-              <Button
-                variant={currentView === 'closed' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  setCurrentView('closed');
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
-              >
-                <DoorClosed className="w-4 h-4" />
-                Closed ({closedRoomsCount})
-              </Button>
-            </div>
-
             {/* Mobile System Actions */}
-            <div className="grid grid-cols-1 gap-2 border-t border-border/60 pt-4">
+            <div className="grid grid-cols-1 gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -433,6 +289,73 @@ const Index = () => {
           </div>
         )}
       </header>
+
+      {/* Secondary Navigation Bar - Room Filters */}
+      <nav className="bg-white/80 backdrop-blur-sm border-b border-border/60 px-4 sm:px-6 py-3 sticky top-[72px] z-30 shadow-soft">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            <Button
+              variant={currentView === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('all')}
+              className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <Home className="w-4 h-4" />
+              All Rooms
+            </Button>
+            
+            <Button
+              variant={currentView === 'checkout' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('checkout')}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Checkout ({checkoutRoomsCount})
+            </Button>
+            
+            <Button
+              variant={currentView === 'dirty' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('dirty')}
+              className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <Wrench className="w-4 h-4" />
+              Dirty ({dirtyRoomsCount})
+            </Button>
+            
+            <Button
+              variant={currentView === 'occupied' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('occupied')}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <Users className="w-4 h-4" />
+              Occupied ({occupiedRoomsCount})
+            </Button>
+            
+            <Button
+              variant={currentView === 'vacant' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('vacant')}
+              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <User className="w-4 h-4" />
+              Vacant ({vacantRoomsCount})
+            </Button>
+            
+            <Button
+              variant={currentView === 'closed' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('closed')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] whitespace-nowrap"
+            >
+              <DoorClosed className="w-4 h-4" />
+              Closed ({closedRoomsCount})
+            </Button>
+          </div>
+        </div>
+      </nav>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-6 sm:space-y-8">
@@ -520,21 +443,19 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Archive System */}
+      {/* Modals and Systems */}
       <ArchiveSystem
         isOpen={showArchiveSystem}
         onClose={() => setShowArchiveSystem(false)}
         isAdmin={isAdmin}
       />
 
-      {/* Chat System */}
       <ChatSystem
         isOpen={showChatSystem}
         onClose={() => setShowChatSystem(false)}
         onTaskUpdate={handleTaskUpdate}
       />
 
-      {/* Task Modal */}
       <TaskModal
         isOpen={showTaskModal}
         roomNumber={selectedTaskRoom}
@@ -542,7 +463,6 @@ const Index = () => {
         onAddTask={handleTaskSubmit}
       />
 
-      {/* Password Dialog for Manual Reset */}
       <PasswordDialog
         isOpen={showManualResetPasswordDialog}
         onClose={() => setShowManualResetPasswordDialog(false)}
