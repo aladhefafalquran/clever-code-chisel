@@ -7,9 +7,11 @@ interface HotelRoomsViewProps {
   isAdmin: boolean;
   selectedRooms: string[];
   showSelection: boolean;
+  roomTasks: Record<string, boolean>;
   onRoomStatusChange: (roomNumber: string, status: RoomStatus) => void;
   onGuestStatusChange: (roomNumber: string, hasGuests: boolean) => void;
   onRoomSelect: (roomNumber: string, selected: boolean) => void;
+  onAddTask: (roomNumber: string) => void;
 }
 
 export const HotelRoomsView = ({
@@ -17,9 +19,11 @@ export const HotelRoomsView = ({
   isAdmin,
   selectedRooms,
   showSelection,
+  roomTasks,
   onRoomStatusChange,
   onGuestStatusChange,
-  onRoomSelect
+  onRoomSelect,
+  onAddTask
 }: HotelRoomsViewProps) => {
   // Group rooms by floor
   const roomsByFloor = rooms.reduce((acc, room) => {
@@ -54,9 +58,11 @@ export const HotelRoomsView = ({
                     isAdmin={isAdmin}
                     isSelected={selectedRooms.includes(room.number)}
                     showSelection={showSelection}
+                    hasTask={roomTasks[room.number] || false}
                     onStatusChange={onRoomStatusChange}
                     onGuestStatusChange={onGuestStatusChange}
                     onSelect={onRoomSelect}
+                    onAddTask={onAddTask}
                   />
                 ))}
             </div>

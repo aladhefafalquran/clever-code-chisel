@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, UserCheck, Users } from 'lucide-react';
+import { User, UserCheck, Users, MessageSquare, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RoomCardProps {
@@ -17,9 +17,11 @@ interface RoomCardProps {
   isAdmin: boolean;
   isSelected: boolean;
   showSelection: boolean;
+  hasTask: boolean;
   onStatusChange: (roomNumber: string, status: RoomStatus) => void;
   onGuestStatusChange: (roomNumber: string, hasGuests: boolean) => void;
   onSelect: (roomNumber: string, selected: boolean) => void;
+  onAddTask: (roomNumber: string) => void;
 }
 
 export const RoomCard = ({
@@ -27,9 +29,11 @@ export const RoomCard = ({
   isAdmin,
   isSelected,
   showSelection,
+  hasTask,
   onStatusChange,
   onGuestStatusChange,
-  onSelect
+  onSelect,
+  onAddTask
 }: RoomCardProps) => {
   const statusConfig = ROOM_STATUS_CONFIG[room.status];
   const workflowPriority = getWorkflowPriority(room);
@@ -66,6 +70,10 @@ export const RoomCard = ({
     }
   };
 
+  const handleAddTask = () => {
+    onAddTask(room.number);
+  };
+
   // Get border style based on occupancy and workflow priority
   const getBorderStyle = () => {
     let borderClass = statusConfig.borderColor;
@@ -89,6 +97,13 @@ export const RoomCard = ({
           "min-h-[120px] md:min-h-[140px] h-full"
         )}
       >
+        {/* Task Indicator */}
+        {hasTask && (
+          <div className="absolute top-1 left-1 z-30 bg-yellow-400 text-black rounded-full w-6 h-6 flex items-center justify-center">
+            <AlertTriangle className="w-3 h-3" />
+          </div>
+        )}
+
         {/* Admin Guest Toggle (only for admin) */}
         {isAdmin && (
           <button
@@ -222,6 +237,17 @@ export const RoomCard = ({
                   <span className="font-medium">
                     {room.hasGuests ? 'Mark as Vacant' : 'Mark as Occupied'}
                   </span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Add Task option - only show for admins */}
+              {isAdmin && (
+                <DropdownMenuItem
+                  onClick={handleAddTask}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium">Add Task</span>
                 </DropdownMenuItem>
               )}
               

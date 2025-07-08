@@ -1,27 +1,44 @@
+
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { AdminLogin } from '@/components/AdminLogin';
 import { AdminPanel } from '@/components/AdminPanel';
 import { FilterPanel } from '@/components/FilterPanel';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
-import { OCRImport } from '@/components/OCRImport';
+import { ChatSystem } from '@/components/ChatSystem';
+import { TaskModal } from '@/components/TaskModal';
 import { useRoomStore } from '@/hooks/useRoomStore';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, Filter, Upload, AlertCircle, Wrench, DoorClosed, User } from 'lucide-react';
+import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showOCRImport, setShowOCRImport] = useState(false);
+  const [showChatSystem, setShowChatSystem] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedTaskRoom, setSelectedTaskRoom] = useState<string>('');
   const [currentView, setCurrentView] = useState<RoomStatus | 'all' | 'occupied' | 'vacant'>('all');
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [showSelection, setShowSelection] = useState(false);
+  const [roomTasks, setRoomTasks] = useState<Record<string, boolean>>({});
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
 
   useEffect(() => {
     initializeRooms();
   }, [initializeRooms]);
+
+  // Handle task events from ChatSystem
+  useEffect(() => {
+    const handleAddTask = (event: CustomEvent) => {
+      const { roomNumber, taskMessage } = event.detail;
+      // This will be handled by the ChatSystem component
+      // We just need to ensure the task modal can trigger it
+    };
+
+    window.addEventListener('addTask', handleAddTask as EventListener);
+    return () => window.removeEventListener('addTask', handleAddTask as EventListener);
+  }, []);
 
   const handleAdminLogin = (success: boolean) => {
     if (success) {
@@ -34,7 +51,26 @@ const Index = () => {
     setIsAdmin(false);
     setSelectedRooms([]);
     setShowSelection(false);
-    setShowOCRImport(false);
+    setShowChatSystem(false);
+  };
+
+  const handleTaskUpdate = (roomNumber: string, hasTask: boolean) => {
+    setRoomTasks(prev => ({
+      ...prev,
+      [roomNumber]: hasTask
+    }));
+  };
+
+  const handleAddTaskToRoom = (roomNumber: string) => {
+    setSelectedTaskRoom(roomNumber);
+    setShowTaskModal(true);
+  };
+
+  const handleTaskSubmit = (roomNumber: string, message: string) => {
+    // Dispatch custom event to ChatSystem
+    window.dispatchEvent(new CustomEvent('addTask', {
+      detail: { roomNumber, message }
+    }));
   };
 
   // Enhanced filtering logic
@@ -92,28 +128,6 @@ const Index = () => {
   const occupiedRoomsCount = rooms.filter(room => room.hasGuests).length;
   const vacantRoomsCount = rooms.filter(room => !room.hasGuests).length;
   const immediateCleaningCount = rooms.filter(room => !room.hasGuests && (room.status === 'dirty' || room.status === 'checkout')).length;
-
-  const getViewIcon = (view: RoomStatus | 'all' | 'occupied' | 'vacant') => {
-    switch (view) {
-      case 'checkout': return <AlertCircle className="w-4 h-4" />;
-      case 'dirty': return <Wrench className="w-4 h-4" />;
-      case 'closed': return <DoorClosed className="w-4 h-4" />;
-      case 'occupied': return <Users className="w-4 h-4" />;
-      case 'vacant': return <User className="w-4 h-4" />;
-      default: return <Home className="w-4 h-4" />;
-    }
-  };
-
-  const getViewLabel = (view: RoomStatus | 'all' | 'occupied' | 'vacant') => {
-    switch (view) {
-      case 'checkout': return `Checkout (${checkoutRoomsCount})`;
-      case 'dirty': return `Dirty (${dirtyRoomsCount})`;
-      case 'closed': return `Closed (${closedRoomsCount})`;
-      case 'occupied': return `Occupied (${occupiedRoomsCount})`;
-      case 'vacant': return `Vacant (${vacantRoomsCount})`;
-      default: return 'All Rooms';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -188,18 +202,20 @@ const Index = () => {
               </Button>
             </div>
 
+            {/* Communication System */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowChatSystem(true)}
+              className="flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat & Tasks
+            </Button>
+
             {/* Admin Controls */}
             {isAdmin ? (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowOCRImport(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Import Room Status
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -291,9 +307,11 @@ const Index = () => {
           isAdmin={isAdmin}
           selectedRooms={selectedRooms}
           showSelection={showSelection}
+          roomTasks={roomTasks}
           onRoomStatusChange={updateRoomStatus}
           onGuestStatusChange={updateGuestStatus}
           onRoomSelect={handleRoomSelect}
+          onAddTask={handleAddTaskToRoom}
         />
       </div>
 
@@ -305,11 +323,20 @@ const Index = () => {
         />
       )}
 
-      {/* OCR Import Modal */}
-      <OCRImport
-        isOpen={showOCRImport}
-        onClose={() => setShowOCRImport(false)}
-        onRoomStatusUpdate={updateRoomStatus}
+      {/* Chat System */}
+      <ChatSystem
+        isOpen={showChatSystem}
+        onClose={() => setShowChatSystem(false)}
+        isAdmin={isAdmin}
+        onTaskUpdate={handleTaskUpdate}
+      />
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={showTaskModal}
+        roomNumber={selectedTaskRoom}
+        onClose={() => setShowTaskModal(false)}
+        onAddTask={handleTaskSubmit}
       />
     </div>
   );
