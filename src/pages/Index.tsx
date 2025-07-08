@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { AdminLogin } from '@/components/AdminLogin';
@@ -11,7 +12,7 @@ import { useRoomStore } from '@/hooks/useRoomStore';
 import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw } from 'lucide-react';
+import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
@@ -26,6 +27,7 @@ const Index = () => {
   const [roomTasks, setRoomTasks] = useState<Record<string, boolean>>({});
   const [showArchiveSystem, setShowArchiveSystem] = useState(false);
   const [showManualResetPasswordDialog, setShowManualResetPasswordDialog] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
   const { performDailyReset } = useDailyReset();
 
@@ -145,156 +147,328 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm shadow-soft border-b border-border/60 px-6 py-4 sticky top-0 z-40">
+      {/* Mobile-Optimized Header */}
+      <header className="bg-white/95 backdrop-blur-sm shadow-soft border-b border-border/60 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">
               Hotel Housekeeping
             </h1>
-            <p className="text-sm text-muted-foreground font-normal">
+            <p className="text-xs sm:text-sm text-muted-foreground font-normal hidden sm:block">
               Professional room management system
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
-            {/* Enhanced View Toggle with Occupancy Filters */}
-            <div className="flex bg-muted/50 rounded-xl p-1.5 gap-1 flex-wrap shadow-soft">
+          {/* Mobile Menu Button */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+            >
+              {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <span className="sr-only">Menu</span>
+            </Button>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
+              {/* Enhanced View Toggle with Occupancy Filters */}
+              <div className="flex bg-muted/50 rounded-xl p-1.5 gap-1 flex-wrap shadow-soft">
+                <Button
+                  variant={currentView === 'all' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('all')}
+                  className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <Home className="w-4 h-4" />
+                  All Rooms
+                </Button>
+                
+                {/* Priority Filters */}
+                <Button
+                  variant={currentView === 'checkout' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('checkout')}
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="hidden lg:inline">Checkout</span> ({checkoutRoomsCount})
+                </Button>
+                <Button
+                  variant={currentView === 'dirty' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('dirty')}
+                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <Wrench className="w-4 h-4" />
+                  <span className="hidden lg:inline">Dirty</span> ({dirtyRoomsCount})
+                </Button>
+                
+                {/* Occupancy Filters */}
+                <Button
+                  variant={currentView === 'occupied' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('occupied')}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="hidden lg:inline">Occupied</span> ({occupiedRoomsCount})
+                </Button>
+                <Button
+                  variant={currentView === 'vacant' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('vacant')}
+                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="hidden lg:inline">Vacant</span> ({vacantRoomsCount})
+                </Button>
+                
+                <Button
+                  variant={currentView === 'closed' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCurrentView('closed')}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                >
+                  <DoorClosed className="w-4 h-4" />
+                  <span className="hidden lg:inline">Closed</span> ({closedRoomsCount})
+                </Button>
+              </div>
+
+              {/* System Actions */}
+              <div className="flex items-center gap-3">
+                {/* Archive System */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowArchiveSystem(true)}
+                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                >
+                  <Archive className="w-4 h-4" />
+                  <span className="hidden lg:inline">Archive</span>
+                </Button>
+
+                {/* Communication System */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowChatSystem(true)}
+                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden lg:inline">Chat & Tasks</span>
+                </Button>
+
+                {/* Admin Controls */}
+                {isAdmin ? (
+                  <div className="flex items-center gap-3 pl-3 border-l border-border/60">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleManualResetRequest}
+                      className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span className="hidden lg:inline">Manual Reset</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden lg:inline">Logout</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowLoginModal(true)}
+                    className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="hidden lg:inline">Admin Login</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu Dropdown */}
+        {showMobileMenu && (
+          <div className="md:hidden mt-4 p-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-elevated border border-white/20">
+            {/* Mobile View Toggle */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <Button
                 variant={currentView === 'all' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('all')}
-                className="flex items-center gap-2 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('all');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <Home className="w-4 h-4" />
                 All Rooms
               </Button>
               
-              {/* Priority Filters */}
               <Button
                 variant={currentView === 'checkout' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('checkout')}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('checkout');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <AlertCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Checkout</span> ({checkoutRoomsCount})
+                Checkout ({checkoutRoomsCount})
               </Button>
+
               <Button
                 variant={currentView === 'dirty' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('dirty')}
-                className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('dirty');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <Wrench className="w-4 h-4" />
-                <span className="hidden sm:inline">Dirty</span> ({dirtyRoomsCount})
+                Dirty ({dirtyRoomsCount})
               </Button>
               
-              {/* Occupancy Filters */}
               <Button
                 variant={currentView === 'occupied' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('occupied')}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('occupied');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Occupied</span> ({occupiedRoomsCount})
+                Occupied ({occupiedRoomsCount})
               </Button>
+
               <Button
                 variant={currentView === 'vacant' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('vacant')}
-                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('vacant');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <User className="w-4 h-4" />
-                <span className="hidden sm:inline">Vacant</span> ({vacantRoomsCount})
+                Vacant ({vacantRoomsCount})
               </Button>
               
               <Button
                 variant={currentView === 'closed' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setCurrentView('closed')}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth hover:scale-105"
+                onClick={() => {
+                  setCurrentView('closed');
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-smooth touch-manipulation min-h-[44px] justify-start"
               >
                 <DoorClosed className="w-4 h-4" />
-                <span className="hidden sm:inline">Closed</span> ({closedRoomsCount})
+                Closed ({closedRoomsCount})
               </Button>
             </div>
 
-            {/* System Actions */}
-            <div className="flex items-center gap-3">
-              {/* Archive System */}
+            {/* Mobile System Actions */}
+            <div className="grid grid-cols-1 gap-2 border-t border-border/60 pt-4">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowArchiveSystem(true)}
-                className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                onClick={() => {
+                  setShowArchiveSystem(true);
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
               >
                 <Archive className="w-4 h-4" />
-                <span className="hidden md:inline">Archive</span>
+                Archive System
               </Button>
 
-              {/* Communication System */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowChatSystem(true)}
-                className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                onClick={() => {
+                  setShowChatSystem(true);
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span className="hidden md:inline">Chat & Tasks</span>
+                Chat & Tasks
               </Button>
 
-              {/* Admin Controls */}
+              {/* Mobile Admin Controls */}
               {isAdmin ? (
-                <div className="flex items-center gap-3 pl-3 border-l border-border/60">
+                <>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleManualResetRequest}
-                    className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth hover:scale-105"
+                    onClick={() => {
+                      handleManualResetRequest();
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    <span className="hidden lg:inline">Manual Reset</span>
+                    Manual Reset
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                    onClick={() => {
+                      handleLogout();
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="hidden lg:inline">Logout</span>
+                    Logout
                   </Button>
-                </div>
+                </>
               ) : (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowLoginModal(true)}
-                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80"
+                  onClick={() => {
+                    setShowLoginModal(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
                 >
                   <Users className="w-4 h-4" />
-                  <span className="hidden md:inline">Admin Login</span>
+                  Admin Login
                 </Button>
               )}
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Enhanced Priority Alerts */}
+      <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-6 sm:space-y-8">
+        {/* Enhanced Priority Alerts - Mobile optimized */}
         {checkoutRoomsCount > 0 && currentView !== 'checkout' && (
-          <div className="glass-effect border border-red-200/60 rounded-2xl p-6 shadow-soft">
-            <div className="flex items-center gap-3 text-red-800">
-              <div className="p-2 bg-red-100 rounded-full">
+          <div className="glass-effect border border-red-200/60 rounded-2xl p-4 sm:p-6 shadow-soft">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-red-800">
+              <div className="p-2 bg-red-100 rounded-full flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-red-600" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">Urgent Attention Required</h3>
-                <p className="text-red-700/80 mt-1">
+                <h3 className="font-semibold text-base sm:text-lg">Urgent Attention Required</h3>
+                <p className="text-red-700/80 mt-1 text-sm sm:text-base">
                   {checkoutRoomsCount} checkout room{checkoutRoomsCount !== 1 ? 's' : ''} need{checkoutRoomsCount === 1 ? 's' : ''} immediate cleaning
                 </p>
               </div>
@@ -302,7 +476,7 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentView('checkout')}
-                className="text-red-600 border-red-300 hover:bg-red-100 font-medium transition-smooth hover:scale-105"
+                className="text-red-600 border-red-300 hover:bg-red-100 font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] w-full sm:w-auto"
               >
                 View Checkout Rooms
               </Button>
@@ -310,16 +484,16 @@ const Index = () => {
           </div>
         )}
 
-        {/* Immediate Cleaning Priority Alert */}
+        {/* Immediate Cleaning Priority Alert - Mobile optimized */}
         {immediateCleaningCount > 0 && currentView !== 'vacant' && (
-          <div className="glass-effect border border-yellow-200/60 rounded-2xl p-6 shadow-soft">
-            <div className="flex items-center gap-3 text-yellow-800">
-              <div className="p-2 bg-yellow-100 rounded-full">
+          <div className="glass-effect border border-yellow-200/60 rounded-2xl p-4 sm:p-6 shadow-soft">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-yellow-800">
+              <div className="p-2 bg-yellow-100 rounded-full flex-shrink-0">
                 <User className="w-5 h-5 text-yellow-600" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">Ready for Cleaning</h3>
-                <p className="text-yellow-700/80 mt-1">
+                <h3 className="font-semibold text-base sm:text-lg">Ready for Cleaning</h3>
+                <p className="text-yellow-700/80 mt-1 text-sm sm:text-base">
                   {immediateCleaningCount} vacant room{immediateCleaningCount !== 1 ? 's' : ''} ready for immediate cleaning
                 </p>
               </div>
@@ -327,7 +501,7 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentView('vacant')}
-                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-medium transition-smooth hover:scale-105"
+                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100 font-medium transition-smooth hover:scale-105 touch-manipulation min-h-[44px] w-full sm:w-auto"
               >
                 View Vacant Rooms
               </Button>
@@ -354,7 +528,7 @@ const Index = () => {
         />
 
         {/* Rooms Display */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-soft border border-white/20">
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-3 sm:p-6 shadow-soft border border-white/20">
           <HotelRoomsView
             rooms={filteredRooms}
             isAdmin={isAdmin}
