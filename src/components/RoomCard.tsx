@@ -164,18 +164,6 @@ export const RoomCard = ({
                 </>
               )}
             </div>
-
-            {/* Workflow Status */}
-            {workflowPriority === 'immediate' && (
-              <div className="text-xs mt-1 bg-yellow-400 text-black px-2 py-1 rounded">
-                Clean Now
-              </div>
-            )}
-            {workflowPriority === 'after-checkout' && (
-              <div className="text-xs mt-1 bg-orange-300 text-black px-2 py-1 rounded">
-                Clean After Checkout
-              </div>
-            )}
           </button>
         ) : (
           <DropdownMenu>
@@ -205,18 +193,6 @@ export const RoomCard = ({
                     </>
                   )}
                 </div>
-
-                {/* Workflow Status */}
-                {workflowPriority === 'immediate' && (
-                  <div className="text-xs mt-1 bg-yellow-400 text-black px-2 py-1 rounded">
-                    Clean Now
-                  </div>
-                )}
-                {workflowPriority === 'after-checkout' && (
-                  <div className="text-xs mt-1 bg-orange-300 text-black px-2 py-1 rounded">
-                    Clean After Checkout
-                  </div>
-                )}
               </button>
             </DropdownMenuTrigger>
             

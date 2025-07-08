@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MessageCircle, Send, CheckCircle, Clock, User } from 'lucide-react';
+import { MessageCircle, Send, CheckCircle, Clock, User, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Task {
@@ -182,6 +182,33 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
     }
   };
 
+  const undoTaskCompletion = (taskId: string) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, completed: false, completedBy: undefined, completedAt: undefined }
+        : task
+    ));
+
+    setMessages(prev => prev.map(msg => 
+      msg.task?.id === taskId 
+        ? { ...msg, task: { ...msg.task, completed: false, completedBy: undefined, completedAt: undefined } }
+        : msg
+    ));
+
+    // Find the task to get room number for notification
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      const notification: ChatMessage = {
+        id: Date.now().toString(),
+        type: 'message',
+        sender: 'housekeeping',
+        content: `↩️ Task reopened for Room ${task.roomNumber}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, notification]);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -248,13 +275,26 @@ export const ChatSystem = ({ isAdmin, isOpen, onClose, onTaskUpdate }: ChatSyste
                     </div>
                   )}
                   
-                  {/* Completed task indicator */}
+                  {/* Completed task indicator with undo button */}
                   {message.type === 'task' && message.task && message.task.completed && (
-                    <div className="mt-2 flex items-center gap-2 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-sm">
-                        Completed by {message.task.completedBy} at {message.task.completedAt?.toLocaleTimeString()}
-                      </span>
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm">
+                          Completed by {message.task.completedBy} at {message.task.completedAt?.toLocaleTimeString()}
+                        </span>
+                      </div>
+                      {!isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => undoTaskCompletion(message.task!.id)}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 px-2 py-1 h-auto"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" />
+                          Undo
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
