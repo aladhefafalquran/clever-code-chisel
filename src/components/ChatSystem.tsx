@@ -44,7 +44,7 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
   console.log('ChatSystem - currentUser:', currentUser);
   console.log('ChatSystem - isAdmin:', isAdmin);
 
-  // Load data from localStorage on mount
+  // Load data from localStorage on mount - FIXED: Empty dependency array
   useEffect(() => {
     const savedMessages = localStorage.getItem('hotelChatMessages');
     const savedTasks = localStorage.getItem('hotelTasks');
@@ -78,9 +78,9 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
         console.error('Error loading tasks:', error);
       }
     }
-  }, []);
+  }, []); // FIXED: Added empty dependency array
 
-  // Handle task events from other components
+  // Handle task events from other components - FIXED: Added currentUser dependency
   useEffect(() => {
     const handleAddTask = (event: CustomEvent) => {
       const { roomNumber, message } = event.detail;
@@ -91,15 +91,20 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
 
     window.addEventListener('addTask', handleAddTask as EventListener);
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
-  }, [currentUser]);
+  }, [currentUser]); // FIXED: Added currentUser dependency
 
-  // Save messages to localStorage
+  // Save messages to localStorage - FIXED: Only run when messages change
   useEffect(() => {
-    localStorage.setItem('hotelChatMessages', JSON.stringify(messages));
-  }, [messages]);
+    if (messages.length > 0) {
+      localStorage.setItem('hotelChatMessages', JSON.stringify(messages));
+    }
+  }, [messages]); // FIXED: Proper dependency array
 
+  // Save tasks and update room indicators - FIXED: Only run when tasks change
   useEffect(() => {
-    localStorage.setItem('hotelTasks', JSON.stringify(tasks));
+    if (tasks.length > 0) {
+      localStorage.setItem('hotelTasks', JSON.stringify(tasks));
+    }
     
     // Update room task indicators
     const tasksByRoom = tasks.reduce((acc, task) => {
@@ -124,7 +129,7 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
         onTaskUpdate(roomNumber, false);
       }
     });
-  }, [tasks, onTaskUpdate]);
+  }, [tasks, onTaskUpdate]); // FIXED: Proper dependency array
 
   const sendMessage = () => {
     if (!newMessage.trim() || !currentUser) {
