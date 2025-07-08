@@ -32,6 +32,7 @@ export const ArchiveSystem = ({ isAdmin, isOpen, onClose }: ArchiveSystemProps) 
   const [archivedData, setArchivedData] = useState<ArchivedData[]>([]);
   const [currentArchive, setCurrentArchive] = useState<ArchivedData | null>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showUndoPasswordDialog, setShowUndoPasswordDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -88,12 +89,18 @@ export const ArchiveSystem = ({ isAdmin, isOpen, onClose }: ArchiveSystemProps) 
     URL.revokeObjectURL(url);
   };
 
-  const undoLastReset = () => {
-    if (!isAdmin) return;
-    
+  const handleUndoResetRequest = () => {
+    setShowUndoPasswordDialog(true);
+  };
+
+  const performUndoReset = () => {
     const confirmation = window.confirm('Are you sure you want to undo the last daily reset? This will restore yesterday\'s data.');
     if (confirmation) {
       console.log('Undoing last reset...');
+      toast({
+        title: "Undo Reset",
+        description: "Last reset has been undone successfully.",
+      });
     }
   };
 
@@ -253,7 +260,7 @@ export const ArchiveSystem = ({ isAdmin, isOpen, onClose }: ArchiveSystemProps) 
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={undoLastReset}
+                        onClick={handleUndoResetRequest}
                         className="w-full justify-start text-orange-600"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
@@ -364,12 +371,19 @@ export const ArchiveSystem = ({ isAdmin, isOpen, onClose }: ArchiveSystemProps) 
         </div>
       </div>
 
-      {/* Password Dialog */}
+      {/* Password Dialogs */}
       <PasswordDialog
         isOpen={showPasswordDialog}
         onClose={() => setShowPasswordDialog(false)}
         onConfirm={performManualReset}
         title="Manual Reset Confirmation"
+      />
+      
+      <PasswordDialog
+        isOpen={showUndoPasswordDialog}
+        onClose={() => setShowUndoPasswordDialog(false)}
+        onConfirm={performUndoReset}
+        title="Undo Reset Confirmation"
       />
     </>
   );

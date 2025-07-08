@@ -6,6 +6,7 @@ import { FilterPanel } from '@/components/FilterPanel';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
 import { ChatSystem } from '@/components/ChatSystem';
 import { TaskModal } from '@/components/TaskModal';
+import { PasswordDialog } from '@/components/PasswordDialog';
 import { useRoomStore } from '@/hooks/useRoomStore';
 import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
@@ -24,8 +25,9 @@ const Index = () => {
   const [showSelection, setShowSelection] = useState(false);
   const [roomTasks, setRoomTasks] = useState<Record<string, boolean>>({});
   const [showArchiveSystem, setShowArchiveSystem] = useState(false);
+  const [showManualResetPasswordDialog, setShowManualResetPasswordDialog] = useState(false);
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
-  const { manualReset } = useDailyReset();
+  const { performDailyReset } = useDailyReset();
 
   useEffect(() => {
     initializeRooms();
@@ -74,6 +76,15 @@ const Index = () => {
     window.dispatchEvent(new CustomEvent('addTask', {
       detail: { roomNumber, message }
     }));
+  };
+
+  const handleManualResetRequest = () => {
+    setShowManualResetPasswordDialog(true);
+  };
+
+  const performManualResetFromHeader = () => {
+    performDailyReset();
+    window.location.reload();
   };
 
   // Enhanced filtering logic
@@ -233,7 +244,7 @@ const Index = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={manualReset}
+                  onClick={handleManualResetRequest}
                   className="flex items-center gap-2 text-orange-600"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -367,6 +378,14 @@ const Index = () => {
         roomNumber={selectedTaskRoom}
         onClose={() => setShowTaskModal(false)}
         onAddTask={handleTaskSubmit}
+      />
+
+      {/* Password Dialog for Manual Reset */}
+      <PasswordDialog
+        isOpen={showManualResetPasswordDialog}
+        onClose={() => setShowManualResetPasswordDialog(false)}
+        onConfirm={performManualResetFromHeader}
+        title="Manual Reset Confirmation"
       />
     </div>
   );
