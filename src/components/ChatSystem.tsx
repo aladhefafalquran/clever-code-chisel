@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,9 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
+
+  console.log('ChatSystem - currentUser:', currentUser);
+  console.log('ChatSystem - isAdmin:', isAdmin);
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -89,7 +93,7 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
   }, [currentUser]);
 
-  // Add archive notification for completed tasks
+  // Save messages to localStorage
   useEffect(() => {
     localStorage.setItem('hotelChatMessages', JSON.stringify(messages));
   }, [messages]);
@@ -123,7 +127,10 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
   }, [tasks, onTaskUpdate]);
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !currentUser) return;
+    if (!newMessage.trim() || !currentUser) {
+      console.log('Cannot send message - missing message or user:', { message: newMessage.trim(), user: currentUser });
+      return;
+    }
 
     const message: ChatMessage = {
       id: Date.now().toString(),
@@ -134,12 +141,16 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
       timestamp: new Date()
     };
 
+    console.log('Sending message:', message);
     setMessages(prev => [...prev, message]);
     setNewMessage('');
   };
 
   const addTask = (roomNumber: string, taskMessage: string) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('Cannot add task - no current user');
+      return;
+    }
 
     const task: Task = {
       id: Date.now().toString(),
@@ -345,22 +356,28 @@ export const ChatSystem = ({ isOpen, onClose, onTaskUpdate }: ChatSystemProps) =
 
         {/* Message Input */}
         <div className="p-4 border-t">
-          <div className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  sendMessage();
-                }
-              }}
-              className="flex-1"
-            />
-            <Button onClick={sendMessage} disabled={!newMessage.trim()}>
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
+          {currentUser ? (
+            <div className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={`Type your message as ${currentUser.name}...`}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    sendMessage();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              Please log in to send messages
+            </div>
+          )}
         </div>
       </div>
     </div>

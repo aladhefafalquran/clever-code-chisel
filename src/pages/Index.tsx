@@ -1,9 +1,5 @@
-
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
-import { AccountSelection } from '@/components/AccountSelection';
-import { AdminPanel } from '@/components/AdminPanel';
-import { FilterPanel } from '@/components/FilterPanel';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
 import { ChatSystem } from '@/components/ChatSystem';
 import { TaskModal } from '@/components/TaskModal';
@@ -13,12 +9,11 @@ import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
 import { useUser } from '@/hooks/useUserContext';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, Filter, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
+import { Users, LogOut, Home, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
   const { currentUser, isAdmin, logout } = useUser();
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showChatSystem, setShowChatSystem] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTaskRoom, setSelectedTaskRoom] = useState<string>('');
@@ -36,13 +31,6 @@ const Index = () => {
     initializeRooms();
   }, [initializeRooms]);
 
-  // Show login modal if no user is logged in
-  useEffect(() => {
-    if (!currentUser) {
-      setShowLoginModal(true);
-    }
-  }, [currentUser]);
-
   // Handle task events from ChatSystem
   useEffect(() => {
     const handleAddTask = (event: CustomEvent) => {
@@ -55,17 +43,11 @@ const Index = () => {
     return () => window.removeEventListener('addTask', handleAddTask as EventListener);
   }, []);
 
-  const handleAccountLogin = (userType: 'admin' | 'housekeeper', userId: string) => {
-    // This is handled by the UserProvider, just close the modal
-    setShowLoginModal(false);
-  };
-
   const handleLogout = () => {
     logout();
     setSelectedRooms([]);
     setShowSelection(false);
     setShowChatSystem(false);
-    setShowLoginModal(true);
   };
 
   const handleTaskUpdate = (roomNumber: string, hasTask: boolean) => {
@@ -169,7 +151,7 @@ const Index = () => {
                 <div className="flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
                   <div className={`w-3 h-3 rounded-full ${currentUser.color}`}></div>
                   <span className="text-xs font-medium text-blue-700">
-                    {currentUser.name}
+                    Logged in as: {currentUser.name}
                   </span>
                 </div>
               )}
@@ -278,7 +260,7 @@ const Index = () => {
                 </Button>
 
                 {/* Admin Controls */}
-                {isAdmin ? (
+                {isAdmin && (
                   <div className="flex items-center gap-3 pl-3 border-l border-border/60">
                     <Button
                       variant="outline"
@@ -289,27 +271,19 @@ const Index = () => {
                       <RotateCcw className="w-4 h-4" />
                       <span className="hidden lg:inline">Manual Reset</span>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden lg:inline">Logout</span>
-                    </Button>
                   </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden lg:inline">Switch User</span>
-                  </Button>
                 )}
+
+                {/* Logout Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden lg:inline">Logout</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -428,47 +402,33 @@ const Index = () => {
               </Button>
 
               {/* Mobile Admin Controls */}
-              {isAdmin ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      handleManualResetRequest();
-                      setShowMobileMenu(false);
-                    }}
-                    className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Manual Reset
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      handleLogout();
-                      setShowMobileMenu(false);
-                    }}
-                    className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </Button>
-                </>
-              ) : (
+              {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setShowLoginModal(true);
+                    handleManualResetRequest();
                     setShowMobileMenu(false);
                   }}
-                  className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
+                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
                 >
-                  <Users className="w-4 h-4" />
-                  Admin Login
+                  <RotateCcw className="w-4 h-4" />
+                  Manual Reset
                 </Button>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  handleLogout();
+                  setShowMobileMenu(false);
+                }}
+                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
             </div>
           </div>
         )}
@@ -559,18 +519,6 @@ const Index = () => {
           />
         </div>
       </div>
-
-      {/* Account Selection Modal */}
-      {showLoginModal && (
-        <AccountSelection
-          onLogin={handleAccountLogin}
-          onClose={() => {
-            if (currentUser) {
-              setShowLoginModal(false);
-            }
-          }}
-        />
-      )}
 
       {/* Archive System */}
       <ArchiveSystem
