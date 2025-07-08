@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
-import { ChatSystem } from '@/components/ChatSystem';
+// import { ChatSystem } from '@/components/ChatSystem'; // TEMPORARILY DISABLED
 import { TaskModal } from '@/components/TaskModal';
 import { PasswordDialog } from '@/components/PasswordDialog';
 import { useRoomStore } from '@/hooks/useRoomStore';
@@ -185,15 +186,16 @@ const Index = () => {
                   <span className="hidden lg:inline">Archive</span>
                 </Button>
 
-                {/* Communication System */}
+                {/* Communication System - TEMPORARILY DISABLED */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowChatSystem(true)}
-                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
+                  onClick={() => alert('Chat system temporarily disabled due to bug')}
+                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px] opacity-50"
+                  disabled
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span className="hidden lg:inline">Chat & Tasks</span>
+                  <span className="hidden lg:inline">Chat & Tasks (Disabled)</span>
                 </Button>
 
                 {/* Admin Controls */}
@@ -247,14 +249,12 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setShowChatSystem(true);
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
+                onClick={() => alert('Chat system temporarily disabled due to bug')}
+                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start opacity-50"
+                disabled
               >
                 <MessageCircle className="w-4 h-4" />
-                Chat & Tasks
+                Chat & Tasks (Disabled)
               </Button>
 
               {/* Mobile Admin Controls */}
@@ -450,11 +450,13 @@ const Index = () => {
         isAdmin={isAdmin}
       />
 
+      {/* ChatSystem temporarily disabled
       <ChatSystem
         isOpen={showChatSystem}
         onClose={() => setShowChatSystem(false)}
         onTaskUpdate={handleTaskUpdate}
       />
+      */}
 
       <TaskModal
         isOpen={showTaskModal}
