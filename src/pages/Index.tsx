@@ -27,10 +27,18 @@ const Index = () => {
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
   const { performDailyReset } = useDailyReset();
 
-  // Debug logging
+  // Debug logging with more detail
   useEffect(() => {
-    console.log('Index component mounted, rooms:', rooms.length);
-  }, [rooms]);
+    console.log('🎯 Index component mounted');
+    console.log('🎯 Current rooms count:', rooms.length);
+    console.log('🎯 Current user:', currentUser?.name || 'No user');
+    
+    if (rooms.length === 0) {
+      console.log('⚠️  WARNING: No rooms found in Index component');
+    } else {
+      console.log('✅ Rooms successfully loaded in Index:', rooms.length);
+    }
+  }, [rooms, currentUser]);
 
   // Handle task events from ChatSystem
   useEffect(() => {
@@ -129,6 +137,11 @@ const Index = () => {
   const handleApplyComplete = () => {
     setSelectedRooms([]);
     setShowSelection(false);
+  };
+
+  const handleForceInitialize = () => {
+    console.log('🔧 MANUAL FORCE INITIALIZE BUTTON CLICKED');
+    initializeRooms();
   };
 
   const checkoutRoomsCount = rooms.filter(room => room.status === 'checkout').length;
@@ -371,15 +384,37 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-6 sm:space-y-8">
-        {/* Debug Info */}
+        {/* Enhanced Debug Info with more details */}
         {rooms.length === 0 && (
           <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 text-yellow-800">
-            <h3 className="font-semibold">Debug: Room Loading Issue</h3>
-            <p>No rooms found. Total rooms: {rooms.length}</p>
-            <p>Check console for initialization logs.</p>
-            <Button onClick={initializeRooms} className="mt-2">
-              Force Reinitialize Rooms
-            </Button>
+            <h3 className="font-semibold">🐛 Debug: Room Loading Issue</h3>
+            <div className="space-y-2 mt-2 text-sm">
+              <p><strong>Total rooms:</strong> {rooms.length}</p>
+              <p><strong>Current user:</strong> {currentUser?.name || 'No user logged in'}</p>
+              <p><strong>Browser:</strong> {navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'}</p>
+              <p><strong>Environment:</strong> {window.location.hostname}</p>
+              <p className="text-xs bg-yellow-200 p-2 rounded">
+                Check browser console for detailed initialization logs (should see 🏨, 🚀, 📥, 🎯 emojis)
+              </p>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleForceInitialize}
+                className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition-colors"
+              >
+                🚀 Force Reinitialize Rooms
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔍 MANUAL CONSOLE TEST');
+                  console.log('🔍 LocalStorage check:', localStorage.getItem('hotelRooms') ? 'Has data' : 'No data');
+                  console.log('🔍 Current rooms state:', rooms);
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+              >
+                🔍 Test Console
+              </button>
+            </div>
           </div>
         )}
 
@@ -470,14 +505,17 @@ const Index = () => {
               <h3 className="text-xl font-semibold text-gray-600 mb-2">No Rooms Found</h3>
               <p className="text-gray-500 mb-4">
                 {currentView === 'all' 
-                  ? 'No rooms have been initialized yet.' 
+                  ? 'No rooms have been initialized yet. Click the button below or check the debug panel above.' 
                   : `No rooms match the "${currentView}" filter.`
                 }
               </p>
               {currentView === 'all' && (
-                <Button onClick={initializeRooms} variant="outline">
-                  Initialize Rooms
-                </Button>
+                <button
+                  onClick={handleForceInitialize}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  🏨 Initialize Rooms
+                </button>
               )}
             </div>
           )}
