@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
-import { ChatSystem } from '@/components/ChatSystem';
 import { TaskModal } from '@/components/TaskModal';
 import { PasswordDialog } from '@/components/PasswordDialog';
 import { useRoomStore } from '@/hooks/useRoomStore';
@@ -10,12 +8,11 @@ import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
 import { useUser } from '@/hooks/useUserContext';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, MessageCircle, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
+import { Users, LogOut, Home, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
 
 const Index = () => {
   const { currentUser, isAdmin, logout } = useUser();
-  const [showChatSystem, setShowChatSystem] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTaskRoom, setSelectedTaskRoom] = useState<string>('');
   const [currentView, setCurrentView] = useState<RoomStatus | 'all' | 'occupied' | 'vacant'>('all');
@@ -57,7 +54,6 @@ const Index = () => {
     logout();
     setSelectedRooms([]);
     setShowSelection(false);
-    setShowChatSystem(false);
   };
 
   const handleTaskUpdate = (roomNumber: string, hasTask: boolean) => {
@@ -212,17 +208,6 @@ const Index = () => {
                   <span className="hidden lg:inline">Archive</span>
                 </Button>
 
-                {/* Communication System - NOW ENABLED */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowChatSystem(true)}
-                  className="flex items-center gap-2 hover-lift shadow-soft bg-white/80 touch-manipulation min-h-[44px]"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="hidden lg:inline">Chat & Tasks</span>
-                </Button>
-
                 {/* Admin Controls */}
                 {isAdmin && (
                   <div className="flex items-center gap-3 pl-3 border-l border-border/60">
@@ -269,19 +254,6 @@ const Index = () => {
               >
                 <Archive className="w-4 h-4" />
                 Archive System
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowChatSystem(true);
-                  setShowMobileMenu(false);
-                }}
-                className="flex items-center gap-2 shadow-soft bg-white/80 touch-manipulation min-h-[44px] justify-start"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Chat & Tasks
               </Button>
 
               {/* Mobile Admin Controls */}
@@ -529,12 +501,6 @@ const Index = () => {
         isOpen={showArchiveSystem}
         onClose={() => setShowArchiveSystem(false)}
         isAdmin={isAdmin}
-      />
-
-      <ChatSystem
-        isOpen={showChatSystem}
-        onClose={() => setShowChatSystem(false)}
-        onTaskUpdate={handleTaskUpdate}
       />
 
       <TaskModal
