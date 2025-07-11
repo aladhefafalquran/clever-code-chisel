@@ -3,7 +3,9 @@ import { HotelRoomsView } from '@/components/HotelRoomsView';
 import { BulkSelectionPanel } from '@/components/BulkSelectionPanel';
 import { TaskModal } from '@/components/TaskModal';
 import { PasswordDialog } from '@/components/PasswordDialog';
+import { AutoRefreshIndicator } from '@/components/AutoRefreshIndicator';
 import { useRoomStore } from '@/hooks/useRoomStore';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
 import { useUser } from '@/hooks/useUserContext';
@@ -24,6 +26,17 @@ const Index = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
   const { performDailyReset } = useDailyReset();
+
+  // Auto-refresh functionality
+  const { lastRefresh, isRefreshing, performRefresh } = useAutoRefresh({
+    interval: 30000, // 30 seconds
+    enabled: true,
+    onRefresh: () => {
+      // Refresh room data when checking for updates
+      console.log('🔄 Refreshing room data...');
+      // The room data will be refreshed automatically by the store
+    }
+  });
 
   // Debug logging with more detail
   useEffect(() => {
@@ -178,6 +191,12 @@ const Index = () => {
                   </span>
                 </div>
               )}
+              {/* Auto-refresh indicator */}
+              <AutoRefreshIndicator 
+                isRefreshing={isRefreshing}
+                lastRefresh={lastRefresh}
+                className="hidden sm:flex"
+              />
             </div>
           </div>
           
@@ -241,6 +260,14 @@ const Index = () => {
         {/* Mobile Menu Dropdown */}
         {showMobileMenu && (
           <div className="md:hidden mt-4 p-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-elevated border border-white/20">
+            {/* Mobile Auto-refresh indicator */}
+            <div className="mb-3 pb-3 border-b border-border/30">
+              <AutoRefreshIndicator 
+                isRefreshing={isRefreshing}
+                lastRefresh={lastRefresh}
+              />
+            </div>
+            
             {/* Mobile System Actions */}
             <div className="grid grid-cols-1 gap-2">
               <Button
