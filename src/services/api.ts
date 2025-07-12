@@ -75,56 +75,60 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 }
 
 // localStorage fallback implementation
-function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const method = options.method || 'GET';
   const body = options.body ? JSON.parse(options.body as string) : null;
   
-  console.log(`Using localStorage for ${method} ${endpoint}`, body ? body : '');
+  console.log(`Using enhanced storage for ${method} ${endpoint}`, body ? body : '');
   
-  return new Promise((resolve) => {
+  try {
     switch (endpoint) {
       case '/health':
-        resolve({ status: 'healthy', timestamp: new Date().toISOString(), database: 'localStorage' } as T);
-        break;
+        const status = StorageManager.getStorageStatus();
+        return { 
+          status: 'healthy', 
+          timestamp: new Date().toISOString(), 
+          database: `Enhanced Storage (IndexedDB: ${status.indexedDB}, localStorage: ${status.localStorage})` 
+        } as T;
         
       case '/rooms':
         if (method === 'GET') {
-          const rooms = getLocalStorageRooms();
-          resolve(rooms as T);
+          const rooms = await getLocalStorageRooms();
+          return rooms as T;
         }
         break;
         
       case '/tasks':
         if (method === 'GET') {
-          const tasks = getLocalStorageTasks();
-          resolve(tasks as T);
+          const tasks = await getLocalStorageTasks();
+          return tasks as T;
         } else if (method === 'POST') {
-          const task = addLocalStorageTask(body);
-          resolve({ success: true, task } as T);
+          const task = await addLocalStorageTask(body);
+          return { success: true, task } as T;
         }
         break;
         
       case '/messages':
         if (method === 'GET') {
-          const messages = getLocalStorageMessages();
-          resolve(messages as T);
+          const messages = await getLocalStorageMessages();
+          return messages as T;
         } else if (method === 'POST') {
-          const message = addLocalStorageMessage(body);
-          resolve({ success: true, message } as T);
+          const message = await addLocalStorageMessage(body);
+          return { success: true, message } as T;
         }
         break;
         
       case '/archives':
         if (method === 'GET') {
-          const archives = getLocalStorageArchives();
-          resolve(archives as T);
+          const archives = await getLocalStorageArchives();
+          return archives as T;
         }
         break;
         
       case '/archive':
         if (method === 'POST') {
-          addLocalStorageArchive(body);
-          resolve({ success: true, message: 'Data archived successfully' } as T);
+          await addLocalStorageArchive(body);
+          return { success: true, message: 'Data archived successfully' } as T;
         }
         break;
         
@@ -132,26 +136,31 @@ function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit =
         // Handle room status updates and task completions
         if (endpoint.includes('/status') && method === 'PUT') {
           const roomNumber = endpoint.split('/')[2];
-          updateLocalStorageRoomStatus(roomNumber, body.status);
-          resolve({ success: true, message: 'Room status updated' } as T);
+          await updateLocalStorageRoomStatus(roomNumber, body.status);
+          return { success: true, message: 'Room status updated' } as T;
         } else if (endpoint.includes('/guests') && method === 'PUT') {
           const roomNumber = endpoint.split('/')[2];
-          updateLocalStorageGuestStatus(roomNumber, body.hasGuests);
-          resolve({ success: true, message: 'Guest status updated' } as T);
+          await updateLocalStorageGuestStatus(roomNumber, body.hasGuests);
+          return { success: true, message: 'Guest status updated' } as T;
         } else if (endpoint.includes('/complete') && method === 'PUT') {
           const taskId = endpoint.split('/')[2];
-          completeLocalStorageTask(taskId, body.completedBy);
-          resolve({ success: true, message: 'Task completed' } as T);
+          await completeLocalStorageTask(taskId, body.completedBy);
+          return { success: true, message: 'Task completed' } as T;
         } else {
-          resolve({ error: 'Operation not supported in offline mode' } as T);
+          return { error: 'Operation not supported in offline mode' } as T;
         }
     }
-  });
+  } catch (error) {
+    console.error('Enhanced storage operation failed:', error);
+    return { error: 'Storage operation failed' } as T;
+  }
+  
+  return { error: 'Operation not supported' } as T;
 }
 
 // localStorage helper functions
-function getLocalStorageRooms() {
-  const stored = StorageManager.getItem('rooms');
+async function getLocalStorageRooms() {
+  const stored = await StorageManager.getItem('rooms');
   if (stored) {
     // Convert date strings back to Date objects for frontend compatibility
     return stored.map((room: any) => ({
@@ -179,7 +188,7 @@ function getLocalStorageRooms() {
     }
   }
   
-  StorageManager.setItem('rooms', defaultRooms);
+  await StorageManager.setItem('rooms', defaultRooms);
   // Return with proper date objects
   return defaultRooms.map((room: any) => ({
     ...room,
@@ -187,8 +196,8 @@ function getLocalStorageRooms() {
   }));
 }
 
-function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
-  const stored = StorageManager.getItem('rooms');
+async function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
+  const stored = await StorageManager.getItem('rooms');
   if (!stored) return;
   
   const rooms = stored;
@@ -197,12 +206,12 @@ function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
     room.status = status;
     room.lastCleaned = status === 'clean' ? new Date().toISOString() : room.lastCleaned;
     room.lastUpdated = new Date().toISOString();
-    StorageManager.setItem('rooms', rooms);
+    await StorageManager.setItem('rooms', rooms);
   }
 }
 
-function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
-  const stored = StorageManager.getItem('rooms');
+async function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
+  const stored = await StorageManager.getItem('rooms');
   if (!stored) return;
   
   const rooms = stored;
@@ -210,12 +219,12 @@ function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
   if (room) {
     room.hasGuests = hasGuests;
     room.lastUpdated = new Date().toISOString();
-    StorageManager.setItem('rooms', rooms);
+    await StorageManager.setItem('rooms', rooms);
   }
 }
 
-function getLocalStorageTasks() {
-  const stored = StorageManager.getItem('tasks');
+async function getLocalStorageTasks() {
+  const stored = await StorageManager.getItem('tasks');
   if (!stored) return [];
   
   // Convert date strings back to Date objects for frontend compatibility
@@ -227,8 +236,8 @@ function getLocalStorageTasks() {
   }));
 }
 
-function addLocalStorageTask(task: any) {
-  const stored = StorageManager.getItem('tasks');
+async function addLocalStorageTask(task: any) {
+  const stored = await StorageManager.getItem('tasks');
   const tasks = stored || [];
   
   const newTask = {
@@ -238,7 +247,7 @@ function addLocalStorageTask(task: any) {
     completed: false
   };
   tasks.push(newTask);
-  StorageManager.setItem('tasks', tasks);
+  await StorageManager.setItem('tasks', tasks);
   
   // Return with Date object for frontend compatibility
   return {
@@ -247,8 +256,8 @@ function addLocalStorageTask(task: any) {
   };
 }
 
-function completeLocalStorageTask(taskId: string, completedBy: string) {
-  const stored = StorageManager.getItem('tasks');
+async function completeLocalStorageTask(taskId: string, completedBy: string) {
+  const stored = await StorageManager.getItem('tasks');
   if (!stored) return;
   
   const tasks = stored;
@@ -257,12 +266,12 @@ function completeLocalStorageTask(taskId: string, completedBy: string) {
     task.completed = true;
     task.completedBy = completedBy;
     task.completedAt = new Date().toISOString();
-    StorageManager.setItem('tasks', tasks);
+    await StorageManager.setItem('tasks', tasks);
   }
 }
 
-function getLocalStorageMessages() {
-  const stored = StorageManager.getItem('messages');
+async function getLocalStorageMessages() {
+  const stored = await StorageManager.getItem('messages');
   if (!stored) return [];
   
   // Convert date strings back to Date objects for frontend compatibility
@@ -272,8 +281,8 @@ function getLocalStorageMessages() {
   }));
 }
 
-function addLocalStorageMessage(message: any) {
-  const stored = StorageManager.getItem('messages');
+async function addLocalStorageMessage(message: any) {
+  const stored = await StorageManager.getItem('messages');
   const messages = stored || [];
   
   const newMessage = {
@@ -282,7 +291,7 @@ function addLocalStorageMessage(message: any) {
     timestamp: new Date().toISOString()
   };
   messages.push(newMessage);
-  StorageManager.setItem('messages', messages);
+  await StorageManager.setItem('messages', messages);
   
   // Return with Date object for frontend compatibility
   return {
@@ -291,20 +300,20 @@ function addLocalStorageMessage(message: any) {
   };
 }
 
-function getLocalStorageArchives() {
-  const stored = StorageManager.getItem('archives');
+async function getLocalStorageArchives() {
+  const stored = await StorageManager.getItem('archives');
   return stored || [];
 }
 
-function addLocalStorageArchive(archiveData: any) {
-  const archives = getLocalStorageArchives();
+async function addLocalStorageArchive(archiveData: any) {
+  const archives = await getLocalStorageArchives();
   const newArchive = {
     id: Date.now(),
     ...archiveData,
     createdAt: new Date().toISOString()
   };
   archives.push(newArchive);
-  StorageManager.setItem('archives', archives);
+  await StorageManager.setItem('archives', archives);
 }
 
 // API service object
@@ -377,20 +386,24 @@ export const apiService = {
   },
 
   // Storage management
-  exportData(): string {
-    return StorageManager.exportData();
+  async exportData(): Promise<string> {
+    return await StorageManager.exportData();
   },
 
-  importData(jsonData: string): boolean {
-    return StorageManager.importData(jsonData);
+  async importData(jsonData: string): Promise<boolean> {
+    return await StorageManager.importData(jsonData);
   },
 
   async getStorageInfo(): Promise<{used: number, quota: number, available: number}> {
     return StorageManager.getStorageInfo();
   },
 
-  clearAllData(): void {
-    StorageManager.clearAll();
+  async clearAllData(): Promise<void> {
+    await StorageManager.clearAll();
+  },
+
+  getStorageStatus(): { indexedDB: boolean, localStorage: boolean } {
+    return StorageManager.getStorageStatus();
   }
 };
 

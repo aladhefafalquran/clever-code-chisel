@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const StorageManager = () => {
   const [storageInfo, setStorageInfo] = useState<{used: number, quota: number, available: number}>({ used: 0, quota: 0, available: 0 });
+  const [storageStatus, setStorageStatus] = useState<{indexedDB: boolean, localStorage: boolean}>({ indexedDB: false, localStorage: false });
   const [importData, setImportData] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -17,7 +18,9 @@ export const StorageManager = () => {
   useEffect(() => {
     const loadStorageInfo = async () => {
       const info = await apiService.getStorageInfo();
+      const status = apiService.getStorageStatus();
       setStorageInfo(info);
+      setStorageStatus(status);
     };
     
     loadStorageInfo();
@@ -30,7 +33,7 @@ export const StorageManager = () => {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const data = apiService.exportData();
+      const data = await apiService.exportData();
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -58,7 +61,7 @@ export const StorageManager = () => {
 
     setIsImporting(true);
     try {
-      const success = apiService.importData(importData);
+      const success = await apiService.importData(importData);
       if (success) {
         toast.success('Data imported successfully!');
         setImportData('');
@@ -75,10 +78,10 @@ export const StorageManager = () => {
     }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
       try {
-        apiService.clearAllData();
+        await apiService.clearAllData();
         toast.success('All data cleared');
         // Refresh the page to show cleared state
         window.location.reload();
@@ -104,7 +107,26 @@ export const StorageManager = () => {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          When you clear browser cookies/data, localStorage is also cleared. Use export/import to backup your data.
+          <div className="space-y-2">
+            <p>Your data is stored using multiple persistence methods for maximum reliability:</p>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Database className={`w-4 h-4 ${storageStatus.indexedDB ? 'text-green-600' : 'text-gray-400'}`} />
+                <span className={storageStatus.indexedDB ? 'text-green-600' : 'text-gray-400'}>
+                  IndexedDB {storageStatus.indexedDB ? '(Active)' : '(Unavailable)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <HardDrive className={`w-4 h-4 ${storageStatus.localStorage ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className={storageStatus.localStorage ? 'text-blue-600' : 'text-gray-400'}>
+                  localStorage {storageStatus.localStorage ? '(Active)' : '(Unavailable)'}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Auto-backup files are created for critical data changes. Export regularly for additional safety.
+            </p>
+          </div>
         </AlertDescription>
       </Alert>
 
