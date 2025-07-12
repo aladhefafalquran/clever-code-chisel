@@ -13,18 +13,34 @@ const API_BASE_URL = '/api';
 
 // Check if backend is available
 let backendAvailable: boolean | null = null;
+let lastCheckTime = 0;
+const CHECK_INTERVAL = 5000; // 5 seconds
 
 async function checkBackendAvailability(): Promise<boolean> {
-  if (backendAvailable !== null) return backendAvailable;
+  const now = Date.now();
+  
+  // Only check once or if enough time has passed
+  if (backendAvailable !== null && (now - lastCheckTime) < CHECK_INTERVAL) {
+    return backendAvailable;
+  }
   
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
     const response = await fetch(`${API_BASE_URL}/health`, { 
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     backendAvailable = response.ok;
-  } catch {
+    lastCheckTime = now;
+  } catch (error) {
     backendAvailable = false;
+    lastCheckTime = now;
+    console.log('Backend not available, using localStorage:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   return backendAvailable;
@@ -61,6 +77,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const method = options.method || 'GET';
   const body = options.body ? JSON.parse(options.body as string) : null;
+  
+  console.log(`Using localStorage for ${method} ${endpoint}`, body ? body : '');
   
   return new Promise((resolve) => {
     switch (endpoint) {
@@ -133,7 +151,16 @@ function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit =
 // localStorage helper functions
 function getLocalStorageRooms() {
   const stored = localStorage.getItem('housekeeping_rooms');
-  if (stored) return JSON.parse(stored);
+  if (stored) {
+    const rooms = JSON.parse(stored);
+    // Convert date strings back to Date objects for frontend compatibility
+    return rooms.map((room: any) => ({
+      ...room,
+      hasGuests: Boolean(room.hasGuests),
+      lastCleaned: room.lastCleaned ? new Date(room.lastCleaned) : null,
+      lastUpdated: new Date(room.lastUpdated)
+    }));
+  }
   
   // Initialize default rooms
   const defaultRooms = [];
@@ -153,11 +180,18 @@ function getLocalStorageRooms() {
   }
   
   localStorage.setItem('housekeeping_rooms', JSON.stringify(defaultRooms));
-  return defaultRooms;
+  // Return with proper date objects
+  return defaultRooms.map((room: any) => ({
+    ...room,
+    lastUpdated: new Date(room.lastUpdated)
+  }));
 }
 
 function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
-  const rooms = getLocalStorageRooms();
+  const stored = localStorage.getItem('housekeeping_rooms');
+  if (!stored) return;
+  
+  const rooms = JSON.parse(stored);
   const room = rooms.find((r: any) => r.number === roomNumber);
   if (room) {
     room.status = status;
@@ -168,7 +202,10 @@ function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
 }
 
 function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
-  const rooms = getLocalStorageRooms();
+  const stored = localStorage.getItem('housekeeping_rooms');
+  if (!stored) return;
+  
+  const rooms = JSON.parse(stored);
   const room = rooms.find((r: any) => r.number === roomNumber);
   if (room) {
     room.hasGuests = hasGuests;
@@ -179,11 +216,22 @@ function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
 
 function getLocalStorageTasks() {
   const stored = localStorage.getItem('housekeeping_tasks');
-  return stored ? JSON.parse(stored) : [];
+  if (!stored) return [];
+  
+  const tasks = JSON.parse(stored);
+  // Convert date strings back to Date objects for frontend compatibility
+  return tasks.map((task: any) => ({
+    ...task,
+    timestamp: new Date(task.timestamp),
+    completed: Boolean(task.completed),
+    completedAt: task.completedAt ? new Date(task.completedAt) : undefined
+  }));
 }
 
 function addLocalStorageTask(task: any) {
-  const tasks = getLocalStorageTasks();
+  const stored = localStorage.getItem('housekeeping_tasks');
+  const tasks = stored ? JSON.parse(stored) : [];
+  
   const newTask = {
     ...task,
     id: task.id || Date.now().toString(),
@@ -192,11 +240,19 @@ function addLocalStorageTask(task: any) {
   };
   tasks.push(newTask);
   localStorage.setItem('housekeeping_tasks', JSON.stringify(tasks));
-  return newTask;
+  
+  // Return with Date object for frontend compatibility
+  return {
+    ...newTask,
+    timestamp: new Date(newTask.timestamp)
+  };
 }
 
 function completeLocalStorageTask(taskId: string, completedBy: string) {
-  const tasks = getLocalStorageTasks();
+  const stored = localStorage.getItem('housekeeping_tasks');
+  if (!stored) return;
+  
+  const tasks = JSON.parse(stored);
   const task = tasks.find((t: any) => t.id === taskId);
   if (task) {
     task.completed = true;
@@ -208,11 +264,20 @@ function completeLocalStorageTask(taskId: string, completedBy: string) {
 
 function getLocalStorageMessages() {
   const stored = localStorage.getItem('housekeeping_messages');
-  return stored ? JSON.parse(stored) : [];
+  if (!stored) return [];
+  
+  const messages = JSON.parse(stored);
+  // Convert date strings back to Date objects for frontend compatibility
+  return messages.map((message: any) => ({
+    ...message,
+    timestamp: new Date(message.timestamp)
+  }));
 }
 
 function addLocalStorageMessage(message: any) {
-  const messages = getLocalStorageMessages();
+  const stored = localStorage.getItem('housekeeping_messages');
+  const messages = stored ? JSON.parse(stored) : [];
+  
   const newMessage = {
     ...message,
     id: message.id || Date.now().toString(),
@@ -220,7 +285,12 @@ function addLocalStorageMessage(message: any) {
   };
   messages.push(newMessage);
   localStorage.setItem('housekeeping_messages', JSON.stringify(messages));
-  return newMessage;
+  
+  // Return with Date object for frontend compatibility
+  return {
+    ...newMessage,
+    timestamp: new Date(newMessage.timestamp)
+  };
 }
 
 function getLocalStorageArchives() {
