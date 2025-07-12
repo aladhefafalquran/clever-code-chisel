@@ -10,8 +10,9 @@ import { ArchiveSystem } from '@/components/ArchiveSystem';
 import { useDailyReset } from '@/hooks/useDailyReset';
 import { useUser } from '@/hooks/useUserContext';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Home, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X } from 'lucide-react';
+import { Users, LogOut, Home, AlertCircle, Wrench, DoorClosed, User, Archive, RotateCcw, Menu, X, Database } from 'lucide-react';
 import { RoomStatus } from '@/types/room';
+import { StorageManager } from '@/components/StorageManager';
 
 const Index = () => {
   const { currentUser, isAdmin, logout } = useUser();
@@ -22,6 +23,7 @@ const Index = () => {
   const [showSelection, setShowSelection] = useState(false);
   const [roomTasks, setRoomTasks] = useState<Record<string, boolean>>({});
   const [showArchiveSystem, setShowArchiveSystem] = useState(false);
+  const [showStorageManager, setShowStorageManager] = useState(false);
   const [showManualResetPasswordDialog, setShowManualResetPasswordDialog] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { rooms, updateRoomStatus, updateGuestStatus, initializeRooms } = useRoomStore();
@@ -233,6 +235,16 @@ const Index = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => setShowStorageManager(true)}
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 shadow-soft bg-white/80 transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
+                    >
+                      <Database className="w-4 h-4" />
+                      <span className="hidden lg:inline">Storage</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleManualResetRequest}
                       className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth hover:scale-105 touch-manipulation min-h-[44px]"
                     >
@@ -285,18 +297,33 @@ const Index = () => {
 
               {/* Mobile Admin Controls */}
               {isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    handleManualResetRequest();
-                    setShowMobileMenu(false);
-                  }}
-                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Manual Reset
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowStorageManager(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
+                  >
+                    <Database className="w-4 h-4" />
+                    Storage Manager
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      handleManualResetRequest();
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 shadow-soft bg-white/80 transition-smooth touch-manipulation min-h-[44px] justify-start"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Manual Reset
+                  </Button>
+                </>
               )}
 
               <Button
@@ -529,6 +556,31 @@ const Index = () => {
         onClose={() => setShowArchiveSystem(false)}
         isAdmin={isAdmin}
       />
+
+      {/* Storage Manager Modal */}
+      {showStorageManager && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Database className="w-6 h-6 text-blue-600" />
+                Storage Manager
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStorageManager(false)}
+                className="touch-manipulation"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="p-6">
+              <StorageManager />
+            </div>
+          </div>
+        </div>
+      )}
 
       <TaskModal
         isOpen={showTaskModal}

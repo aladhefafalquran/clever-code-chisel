@@ -1,5 +1,6 @@
 import { Room, RoomStatus } from '@/types/room';
 import { Task, ChatMessage, SimpleChatMessage } from '@/types/common';
+import { StorageManager } from '@/utils/storageManager';
 
 interface ArchivedData {
   date: string;
@@ -150,11 +151,10 @@ function handleLocalStorageOperation<T>(endpoint: string, options: RequestInit =
 
 // localStorage helper functions
 function getLocalStorageRooms() {
-  const stored = localStorage.getItem('housekeeping_rooms');
+  const stored = StorageManager.getItem('rooms');
   if (stored) {
-    const rooms = JSON.parse(stored);
     // Convert date strings back to Date objects for frontend compatibility
-    return rooms.map((room: any) => ({
+    return stored.map((room: any) => ({
       ...room,
       hasGuests: Boolean(room.hasGuests),
       lastCleaned: room.lastCleaned ? new Date(room.lastCleaned) : null,
@@ -179,7 +179,7 @@ function getLocalStorageRooms() {
     }
   }
   
-  localStorage.setItem('housekeeping_rooms', JSON.stringify(defaultRooms));
+  StorageManager.setItem('rooms', defaultRooms);
   // Return with proper date objects
   return defaultRooms.map((room: any) => ({
     ...room,
@@ -188,39 +188,38 @@ function getLocalStorageRooms() {
 }
 
 function updateLocalStorageRoomStatus(roomNumber: string, status: string) {
-  const stored = localStorage.getItem('housekeeping_rooms');
+  const stored = StorageManager.getItem('rooms');
   if (!stored) return;
   
-  const rooms = JSON.parse(stored);
+  const rooms = stored;
   const room = rooms.find((r: any) => r.number === roomNumber);
   if (room) {
     room.status = status;
     room.lastCleaned = status === 'clean' ? new Date().toISOString() : room.lastCleaned;
     room.lastUpdated = new Date().toISOString();
-    localStorage.setItem('housekeeping_rooms', JSON.stringify(rooms));
+    StorageManager.setItem('rooms', rooms);
   }
 }
 
 function updateLocalStorageGuestStatus(roomNumber: string, hasGuests: boolean) {
-  const stored = localStorage.getItem('housekeeping_rooms');
+  const stored = StorageManager.getItem('rooms');
   if (!stored) return;
   
-  const rooms = JSON.parse(stored);
+  const rooms = stored;
   const room = rooms.find((r: any) => r.number === roomNumber);
   if (room) {
     room.hasGuests = hasGuests;
     room.lastUpdated = new Date().toISOString();
-    localStorage.setItem('housekeeping_rooms', JSON.stringify(rooms));
+    StorageManager.setItem('rooms', rooms);
   }
 }
 
 function getLocalStorageTasks() {
-  const stored = localStorage.getItem('housekeeping_tasks');
+  const stored = StorageManager.getItem('tasks');
   if (!stored) return [];
   
-  const tasks = JSON.parse(stored);
   // Convert date strings back to Date objects for frontend compatibility
-  return tasks.map((task: any) => ({
+  return stored.map((task: any) => ({
     ...task,
     timestamp: new Date(task.timestamp),
     completed: Boolean(task.completed),
@@ -229,8 +228,8 @@ function getLocalStorageTasks() {
 }
 
 function addLocalStorageTask(task: any) {
-  const stored = localStorage.getItem('housekeeping_tasks');
-  const tasks = stored ? JSON.parse(stored) : [];
+  const stored = StorageManager.getItem('tasks');
+  const tasks = stored || [];
   
   const newTask = {
     ...task,
@@ -239,7 +238,7 @@ function addLocalStorageTask(task: any) {
     completed: false
   };
   tasks.push(newTask);
-  localStorage.setItem('housekeeping_tasks', JSON.stringify(tasks));
+  StorageManager.setItem('tasks', tasks);
   
   // Return with Date object for frontend compatibility
   return {
@@ -249,34 +248,33 @@ function addLocalStorageTask(task: any) {
 }
 
 function completeLocalStorageTask(taskId: string, completedBy: string) {
-  const stored = localStorage.getItem('housekeeping_tasks');
+  const stored = StorageManager.getItem('tasks');
   if (!stored) return;
   
-  const tasks = JSON.parse(stored);
+  const tasks = stored;
   const task = tasks.find((t: any) => t.id === taskId);
   if (task) {
     task.completed = true;
     task.completedBy = completedBy;
     task.completedAt = new Date().toISOString();
-    localStorage.setItem('housekeeping_tasks', JSON.stringify(tasks));
+    StorageManager.setItem('tasks', tasks);
   }
 }
 
 function getLocalStorageMessages() {
-  const stored = localStorage.getItem('housekeeping_messages');
+  const stored = StorageManager.getItem('messages');
   if (!stored) return [];
   
-  const messages = JSON.parse(stored);
   // Convert date strings back to Date objects for frontend compatibility
-  return messages.map((message: any) => ({
+  return stored.map((message: any) => ({
     ...message,
     timestamp: new Date(message.timestamp)
   }));
 }
 
 function addLocalStorageMessage(message: any) {
-  const stored = localStorage.getItem('housekeeping_messages');
-  const messages = stored ? JSON.parse(stored) : [];
+  const stored = StorageManager.getItem('messages');
+  const messages = stored || [];
   
   const newMessage = {
     ...message,
@@ -284,7 +282,7 @@ function addLocalStorageMessage(message: any) {
     timestamp: new Date().toISOString()
   };
   messages.push(newMessage);
-  localStorage.setItem('housekeeping_messages', JSON.stringify(messages));
+  StorageManager.setItem('messages', messages);
   
   // Return with Date object for frontend compatibility
   return {
@@ -294,8 +292,8 @@ function addLocalStorageMessage(message: any) {
 }
 
 function getLocalStorageArchives() {
-  const stored = localStorage.getItem('housekeeping_archives');
-  return stored ? JSON.parse(stored) : [];
+  const stored = StorageManager.getItem('archives');
+  return stored || [];
 }
 
 function addLocalStorageArchive(archiveData: any) {
@@ -306,7 +304,7 @@ function addLocalStorageArchive(archiveData: any) {
     createdAt: new Date().toISOString()
   };
   archives.push(newArchive);
-  localStorage.setItem('housekeeping_archives', JSON.stringify(archives));
+  StorageManager.setItem('archives', archives);
 }
 
 // API service object
@@ -377,6 +375,23 @@ export const apiService = {
       body: JSON.stringify({ date, summary, data }),
     });
   },
+
+  // Storage management
+  exportData(): string {
+    return StorageManager.exportData();
+  },
+
+  importData(jsonData: string): boolean {
+    return StorageManager.importData(jsonData);
+  },
+
+  async getStorageInfo(): Promise<{used: number, quota: number, available: number}> {
+    return StorageManager.getStorageInfo();
+  },
+
+  clearAllData(): void {
+    StorageManager.clearAll();
+  }
 };
 
 // Connection status checker
