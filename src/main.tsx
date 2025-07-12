@@ -1,11 +1,11 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { StorageManager } from './utils/storageManager'
+import { HybridStorageManager } from './utils/hybridStorageManager'
 
-// Initialize enhanced storage on app start
-StorageManager.init().then(() => {
-  console.log('🔄 Enhanced storage initialized');
+// Initialize GitHub-based storage on app start
+HybridStorageManager.init().then(() => {
+  console.log('🔄 GitHub database storage initialized');
 }).catch(error => {
   console.error('Storage initialization failed:', error);
 });

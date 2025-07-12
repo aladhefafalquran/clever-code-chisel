@@ -43,12 +43,12 @@ export const AutoRefreshIndicator = ({ isRefreshing, lastRefresh, className = ''
         {isBackendConnected ? (
           <>
             <Database className="w-3 h-3 text-green-600" />
-            <span className="text-green-600">Database</span>
+            <span className="text-green-600">Backend DB</span>
           </>
         ) : (
           <>
-            <HardDrive className="w-3 h-3 text-orange-600" />
-            <span className="text-orange-600">Local Storage</span>
+            <Database className="w-3 h-3 text-blue-600" />
+            <span className="text-blue-600">GitHub DB</span>
           </>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { Room, RoomStatus } from '@/types/room';
 import { Task, ChatMessage, SimpleChatMessage } from '@/types/common';
 import { StorageManager } from '@/utils/storageManager';
+import { HybridStorageManager } from '@/utils/hybridStorageManager';
 
 interface ArchivedData {
   date: string;
@@ -84,50 +85,50 @@ async function handleLocalStorageOperation<T>(endpoint: string, options: Request
   try {
     switch (endpoint) {
       case '/health':
-        const status = StorageManager.getStorageStatus();
+        const status = HybridStorageManager.getStorageStatus();
         return { 
           status: 'healthy', 
           timestamp: new Date().toISOString(), 
-          database: `Enhanced Storage (IndexedDB: ${status.indexedDB}, localStorage: ${status.localStorage})` 
+          database: `GitHub Database (GitHub: ${status.github}, IndexedDB: ${status.indexedDB}, localStorage: ${status.localStorage})` 
         } as T;
         
       case '/rooms':
         if (method === 'GET') {
-          const rooms = await getLocalStorageRooms();
+          const rooms = await HybridStorageManager.getRooms();
           return rooms as T;
         }
         break;
         
       case '/tasks':
         if (method === 'GET') {
-          const tasks = await getLocalStorageTasks();
+          const tasks = await HybridStorageManager.getTasks();
           return tasks as T;
         } else if (method === 'POST') {
-          const task = await addLocalStorageTask(body);
+          const task = await HybridStorageManager.addTask(body);
           return { success: true, task } as T;
         }
         break;
         
       case '/messages':
         if (method === 'GET') {
-          const messages = await getLocalStorageMessages();
+          const messages = await HybridStorageManager.getMessages();
           return messages as T;
         } else if (method === 'POST') {
-          const message = await addLocalStorageMessage(body);
+          const message = await HybridStorageManager.addMessage(body);
           return { success: true, message } as T;
         }
         break;
         
       case '/archives':
         if (method === 'GET') {
-          const archives = await getLocalStorageArchives();
+          const archives = await HybridStorageManager.getArchives();
           return archives as T;
         }
         break;
         
       case '/archive':
         if (method === 'POST') {
-          await addLocalStorageArchive(body);
+          await HybridStorageManager.addArchive(body);
           return { success: true, message: 'Data archived successfully' } as T;
         }
         break;
@@ -136,15 +137,15 @@ async function handleLocalStorageOperation<T>(endpoint: string, options: Request
         // Handle room status updates and task completions
         if (endpoint.includes('/status') && method === 'PUT') {
           const roomNumber = endpoint.split('/')[2];
-          await updateLocalStorageRoomStatus(roomNumber, body.status);
+          await HybridStorageManager.updateRoomStatus(roomNumber, body.status);
           return { success: true, message: 'Room status updated' } as T;
         } else if (endpoint.includes('/guests') && method === 'PUT') {
           const roomNumber = endpoint.split('/')[2];
-          await updateLocalStorageGuestStatus(roomNumber, body.hasGuests);
+          await HybridStorageManager.updateGuestStatus(roomNumber, body.hasGuests);
           return { success: true, message: 'Guest status updated' } as T;
         } else if (endpoint.includes('/complete') && method === 'PUT') {
           const taskId = endpoint.split('/')[2];
-          await completeLocalStorageTask(taskId, body.completedBy);
+          await HybridStorageManager.completeTask(taskId, body.completedBy);
           return { success: true, message: 'Task completed' } as T;
         } else {
           return { error: 'Operation not supported in offline mode' } as T;
@@ -387,11 +388,11 @@ export const apiService = {
 
   // Storage management
   async exportData(): Promise<string> {
-    return await StorageManager.exportData();
+    return await HybridStorageManager.exportData();
   },
 
   async importData(jsonData: string): Promise<boolean> {
-    return await StorageManager.importData(jsonData);
+    return await HybridStorageManager.importData(jsonData);
   },
 
   async getStorageInfo(): Promise<{used: number, quota: number, available: number}> {
@@ -399,11 +400,11 @@ export const apiService = {
   },
 
   async clearAllData(): Promise<void> {
-    await StorageManager.clearAll();
+    await HybridStorageManager.clearAllData();
   },
 
-  getStorageStatus(): { indexedDB: boolean, localStorage: boolean } {
-    return StorageManager.getStorageStatus();
+  getStorageStatus(): { github: boolean, indexedDB: boolean, localStorage: boolean } {
+    return HybridStorageManager.getStorageStatus();
   }
 };
 
