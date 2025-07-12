@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, CheckCircle, Clock } from 'lucide-react';
+import { RefreshCw, CheckCircle, Clock, Database, HardDrive } from 'lucide-react';
+import { checkConnection } from '@/services/api';
 
 interface AutoRefreshIndicatorProps {
   isRefreshing: boolean;
@@ -10,6 +11,7 @@ interface AutoRefreshIndicatorProps {
 
 export const AutoRefreshIndicator = ({ isRefreshing, lastRefresh, className = '' }: AutoRefreshIndicatorProps) => {
   const [countdown, setCountdown] = useState(30);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,8 +23,37 @@ export const AutoRefreshIndicator = ({ isRefreshing, lastRefresh, className = ''
     return () => clearInterval(interval);
   }, [lastRefresh]);
 
+  useEffect(() => {
+    const checkBackend = async () => {
+      const connected = await checkConnection();
+      setIsBackendConnected(connected);
+    };
+    
+    checkBackend();
+    
+    // Check backend connection every 30 seconds
+    const interval = setInterval(checkBackend, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className={`flex items-center gap-2 text-xs text-muted-foreground ${className}`}>
+    <div className={`flex items-center gap-3 text-xs text-muted-foreground ${className}`}>
+      {/* Storage indicator */}
+      <div className="flex items-center gap-1">
+        {isBackendConnected ? (
+          <>
+            <Database className="w-3 h-3 text-green-600" />
+            <span className="text-green-600">Database</span>
+          </>
+        ) : (
+          <>
+            <HardDrive className="w-3 h-3 text-orange-600" />
+            <span className="text-orange-600">Local Storage</span>
+          </>
+        )}
+      </div>
+
+      {/* Refresh indicator */}
       {isRefreshing ? (
         <>
           <RefreshCw className="w-3 h-3 animate-spin" />
